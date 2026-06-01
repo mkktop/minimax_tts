@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>同步合成（流式） - MiniMax TTS</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/home.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container header-inner">
+            <a href="/" class="logo">
+                <div class="logo-icon">🎙️</div>
+                <span>MiniMax TTS</span>
+            </a>
+            <nav class="nav">
+                <a href="/" class="nav-link">首页</a>
+                <a href="streaming.html" class="nav-link active">同步合成</a>
+                <a href="http.html" class="nav-link">HTTP合成</a>
+                <a href="async.html" class="nav-link">异步合成</a>
+                <a href="clone.html" class="nav-link">音色复刻</a>
+            </nav>
+            <div class="header-actions">
+                <div class="api-key-section">
+                    <span id="apiKeyDisplay" class="api-key-display">未设置 API Key</span>
+                    <button class="btn btn-secondary btn-sm" onclick="showApiKeyModal()">设置</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="page">
+        <div class="container">
+            <div class="page-header">
+                <h1 class="page-title">🎤 同步合成（流式）</h1>
+                <p class="page-subtitle">边合成边播放，实时生成音频，低延迟体验。适合短文本场景，最多 10,000 字符。</p>
+            </div>
+
+            <div class="work-area">
+                <div class="work-layout">
+                    <!-- Settings Panel -->
+                    <div class="settings-panel">
+                        <!-- 模型选择 -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">📦 模型选择</div>
+                            <div class="model-grid">
+                                <div class="model-option selected" data-model="speech-2.8-hd">
+                                    <div class="model-name">speech-2.8-hd</div>
+                                    <div class="model-desc">高清音质，情绪渲染</div>
+                                </div>
+                                <div class="model-option" data-model="speech-2.8-turbo">
+                                    <div class="model-name">speech-2.8-turbo</div>
+                                    <div class="model-desc">极速合成，更自然</div>
+                                </div>
+                                <div class="model-option" data-model="speech-2.6-hd">
+                                    <div class="model-name">speech-2.6-hd</div>
+                                    <div class="model-desc">超低延时，高自然度</div>
+                                </div>
+                                <div class="model-option" data-model="speech-2.6-turbo">
+                                    <div class="model-name">speech-2.6-turbo</div>
+                                    <div class="model-desc">极速版，更优惠</div>
+                                </div>
+                                <div class="model-option" data-model="speech-02-hd">
+                                    <div class="model-name">speech-02-hd</div>
+                                    <div class="model-desc">韵律稳定，复刻相似</div>
+                                </div>
+                                <div class="model-option" data-model="speech-02-turbo">
+                                    <div class="model-name">speech-02-turbo</div>
+                                    <div class="model-desc">小语种能力强</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 语言与音色 -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">🎵 语言与音色</div>
+                            <div class="form-group">
+                                <label class="form-label">语言</label>
+                                <select id="languageSelect" class="form-input">
+                                    <option value="中文（普通话）">中文（普通话）</option>
+                                    <option value="中文（粤语）">中文（粤语）</option>
+                                    <option value="英文">英文</option>
+                                    <option value="日文">日文</option>
+                                    <option value="韩文">韩文</option>
+                                    <option value="西班牙文">西班牙文</option>
+                                    <option value="葡萄牙文">葡萄牙文</option>
+                                    <option value="法文">法文</option>
+                                    <option value="印尼文">印尼文</option>
+                                    <option value="德文">德文</option>
+                                    <option value="俄文">俄文</option>
+                                    <option value="意大利文">意大利文</option>
+                                    <option value="阿拉伯文">阿拉伯文</option>
+                                    <option value="土耳其文">土耳其文</option>
+                                    <option value="越南文">越南文</option>
+                                    <option value="泰文">泰文</option>
+                                    <option value="其他">其他语言...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">音色 <span class="text-muted" style="font-size: 0.75rem; font-weight: normal;" id="voiceCount">(0 个)</span></label>
+                                <input type="text" id="voiceSearch" class="form-input" placeholder="🔍 搜索音色..." style="margin-bottom: 8px;">
+                                <div id="voiceList" class="voice-list" style="max-height: 240px; overflow-y: auto;">
+                                    <!-- 动态生成音色列表 -->
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">或使用自定义克隆音色</label>
+                                <input type="text" id="customVoiceId" class="form-input" placeholder="输入自定义 voice_id (从音色复刻获取)">
+                                <div class="upload-hint" style="margin-top: 4px;">优先级：自定义 ID > 列表选择</div>
+                            </div>
+                            <div id="selectedVoiceInfo" class="hidden" style="padding: 8px 12px; background: var(--bg-dark); border-radius: var(--radius-md); margin-top: 8px;">
+                                <span class="text-muted" style="font-size: 0.75rem;">已选择：</span>
+                                <span id="selectedVoiceText" style="font-size: 0.875rem; font-weight: 500;"></span>
+                            </div>
+                        </div>
+
+                        <!-- 参数调节 -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">⚙️ 参数调节</div>
+                            <div class="form-group">
+                                <label class="form-label">语速 (0.5 - 2.0)</label>
+                                <div class="form-slider">
+                                    <input type="range" id="speedSlider" min="0.5" max="2" step="0.1" value="1">
+                                    <span class="slider-value" id="speedValue">1.0x</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">音调 (-12 - 12)</label>
+                                <div class="form-slider">
+                                    <input type="range" id="pitchSlider" min="-12" max="12" step="1" value="0">
+                                    <span class="slider-value" id="pitchValue">0</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">音量 (0 - 2)</label>
+                                <div class="form-slider">
+                                    <input type="range" id="volSlider" min="0" max="2" step="0.1" value="1">
+                                    <span class="slider-value" id="volValue">1.0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 音频设置 -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">🔊 音频设置</div>
+                            <div class="form-group">
+                                <label class="form-label">采样率</label>
+                                <select id="sampleRateSelect" class="form-input">
+                                    <option value="16000">16000 Hz</option>
+                                    <option value="24000">24000 Hz</option>
+                                    <option value="32000" selected>32000 Hz</option>
+                                    <option value="48000">48000 Hz</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">格式</label>
+                                <select id="formatSelect" class="form-input">
+                                    <option value="mp3" selected>MP3</option>
+                                    <option value="wav">WAV</option>
+                                    <option value="ogg">OGG</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Output Panel -->
+                    <div class="output-panel">
+                        <div class="output-area">
+                            <div class="output-header">
+                                <span class="output-title">文本输入</span>
+                                <div class="output-actions">
+                                    <span id="charCount" class="text-muted" style="font-size: 0.8125rem;">0 / 10,000</span>
+                                </div>
+                            </div>
+                            <textarea id="textInput" class="form-input" style="flex: 1; min-height: 200px;" placeholder="请输入要转换的文本...（最多 10,000 字符）"></textarea>
+                            <div style="margin-top: 16px;">
+                                <button id="synthBtn" class="btn btn-primary w-full" onclick="startSynthesis()">
+                                    🎤 开始合成
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Status & Player -->
+                        <div id="statusSection" class="hidden" style="margin-top: 24px;">
+                            <div class="status-bar">
+                                <div id="statusIcon" class="status-icon pending">⏳</div>
+                                <div class="status-info">
+                                    <div id="statusText" class="status-text">准备就绪</div>
+                                    <div id="statusDetail" class="status-detail"></div>
+                                </div>
+                            </div>
+
+                            <div id="audioPlayer" class="audio-player hidden">
+                                <div class="audio-controls">
+                                    <button class="audio-play-btn" onclick="togglePlay()">▶</button>
+                                    <div class="audio-progress" onclick="seekAudio(event)">
+                                        <div id="audioProgressFill" class="audio-progress-fill" style="width: 0%"></div>
+                                    </div>
+                                    <span id="audioTime" class="audio-time">00:00 / 00:00</span>
+                                </div>
+                                <div style="margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
+                                    <button class="btn btn-secondary btn-sm" onclick="downloadAudio()">⬇ 下载</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- API Key Modal -->
+    <div id="apiKeyModal" class="modal-overlay hidden">
+        <div class="modal">
+            <h3 class="modal-title">设置 API Key</h3>
+            <div class="form-group">
+                <label class="form-label">MiniMax API Key</label>
+                <input type="password" id="apiKeyInput" class="form-input" placeholder="输入你的 API Key">
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="hideApiKeyModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveApiKey()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- Audio Element -->
+    <audio id="audioElement" style="display: none;"></audio>
+
+    <script src="js/custom-select.js"></script>
+    <script src="js/voice-library.js"></script>
+    <script src="js/streaming.js"></script>
+</body>
+</html>

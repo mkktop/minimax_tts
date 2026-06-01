@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniMax TTS - 语音合成工具</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/home.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container header-inner">
+            <a href="/" class="logo">
+                <div class="logo-icon">🎙️</div>
+                <span>MiniMax TTS</span>
+            </a>
+            <nav class="nav">
+                <a href="#features" class="nav-link">功能</a>
+                <a href="#voices" class="nav-link">音色库</a>
+                <a href="https://platform.minimaxi.com/docs" target="_blank" class="nav-link">文档</a>
+            </nav>
+            <div class="header-actions">
+                <div class="api-key-section">
+                    <span id="apiKeyDisplay" class="api-key-display">未设置 API Key</span>
+                    <button class="btn btn-secondary btn-sm" onclick="showApiKeyModal()">设置</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container hero-content">
+            <h1 class="hero-title">MiniMax TTS<br>语音合成工具</h1>
+            <p class="hero-subtitle">
+                基于 MiniMax 语音 API 的 Web 工具，支持同步/异步合成和音色复刻。
+            </p>
+
+            <!-- Hero Image Carousel -->
+            <div class="hero-image carousel">
+                <div class="carousel-track">
+                    <img src="images/hero-bg.jpg" alt="MiniMax TTS" class="carousel-slide active" onerror="this.style.display='none'" />
+                    <img src="images/hero-bg-1.jpg" alt="" class="carousel-slide" onerror="this.style.display='none'" />
+                    <img src="images/hero-bg-2.jpg" alt="" class="carousel-slide" onerror="this.style.display='none'" />
+                    <img src="images/hero-bg-3.jpg" alt="" class="carousel-slide" onerror="this.style.display='none'" />
+                    <img src="images/hero-bg-4.jpg" alt="" class="carousel-slide" onerror="this.style.display='none'" />
+                    <img src="images/hero-bg-5.jpg" alt="" class="carousel-slide" onerror="this.style.display='none'" />
+                </div>
+                <div class="carousel-dots">
+                    <span class="carousel-dot active" data-index="0"></span>
+                    <span class="carousel-dot" data-index="1"></span>
+                    <span class="carousel-dot" data-index="2"></span>
+                    <span class="carousel-dot" data-index="3"></span>
+                    <span class="carousel-dot" data-index="4"></span>
+                    <span class="carousel-dot" data-index="5"></span>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-value">327+</div>
+                    <div class="stat-label">预设音色</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">40+</div>
+                    <div class="stat-label">支持语言</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">6</div>
+                    <div class="stat-label">合成模型</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">10万</div>
+                    <div class="stat-label">最大字符数</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">功能</h2>
+            </div>
+
+            <div class="features-grid">
+                <!-- 同步合成（流式）-->
+                <a href="streaming.html" class="feature-card">
+                    <div class="feature-icon">
+                        <img src="images/tts-card.jpg" alt="TTS" onerror="this.outerHTML='🎤'">
+                    </div>
+                    <h3 class="feature-title">同步合成（流式）</h3>
+                    <p class="feature-desc">边合成边播放，低延迟体验。</p>
+                    <div class="feature-tags">
+                        <span class="feature-tag">流式播放</span>
+                        <span class="feature-tag">≤10,000字</span>
+                    </div>
+                    <span class="feature-link">进入 →</span>
+                </a>
+
+                <!-- 同步合成（HTTP）-->
+                <a href="http.html" class="feature-card">
+                    <div class="feature-icon">📡</div>
+                    <h3 class="feature-title">同步合成（HTTP）</h3>
+                    <p class="feature-desc">完整音频一次返回，简单可靠。</p>
+                    <div class="feature-tags">
+                        <span class="feature-tag">完整返回</span>
+                        <span class="feature-tag">≤10,000字</span>
+                    </div>
+                    <span class="feature-link">进入 →</span>
+                </a>
+
+                <!-- 异步合成 -->
+                <a href="async.html" class="feature-card">
+                    <div class="feature-icon">
+                        <img src="images/async-card.jpg" alt="Async" onerror="this.outerHTML='⏳'">
+                    </div>
+                    <h3 class="feature-title">异步合成</h3>
+                    <p class="feature-desc">长文本专用，支持字幕时间戳。</p>
+                    <div class="feature-tags">
+                        <span class="feature-tag">长文本</span>
+                        <span class="feature-tag">≤10万字</span>
+                    </div>
+                    <span class="feature-link">进入 →</span>
+                </a>
+
+                <!-- 音色复刻 -->
+                <a href="clone.html" class="feature-card">
+                    <div class="feature-icon">
+                        <img src="images/clone-card.jpg" alt="Clone" onerror="this.outerHTML='🎭'">
+                    </div>
+                    <h3 class="feature-title">音色复刻</h3>
+                    <p class="feature-desc">上传音频样本，克隆专属音色。</p>
+                    <div class="feature-tags">
+                        <span class="feature-tag">自定义音色</span>
+                    </div>
+                    <span class="feature-link">进入 →</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Voice Library Section -->
+    <section id="voices" class="voice-library">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">音色库</h2>
+                <p class="section-subtitle">点击进入音色选择，按语言和场景快速找到需要的声音</p>
+            </div>
+
+            <div class="voice-preview">
+                <a href="streaming.html?lang=中文（普通话）" class="voice-card">
+                    <div class="voice-flag">🇨🇳</div>
+                    <div class="voice-lang">中文（普通话）</div>
+                    <div class="voice-count">58 种音色</div>
+                </a>
+                <a href="streaming.html?lang=中文（粤语）" class="voice-card">
+                    <div class="voice-flag">🇭🇰</div>
+                    <div class="voice-lang">中文（粤语）</div>
+                    <div class="voice-count">6 种音色</div>
+                </a>
+                <a href="streaming.html?lang=英文" class="voice-card">
+                    <div class="voice-flag">🇺🇸</div>
+                    <div class="voice-lang">英文</div>
+                    <div class="voice-count">16 种音色</div>
+                </a>
+                <a href="streaming.html?lang=日文" class="voice-card">
+                    <div class="voice-flag">🇯🇵</div>
+                    <div class="voice-lang">日文</div>
+                    <div class="voice-count">14 种音色</div>
+                </a>
+                <a href="streaming.html?lang=韩文" class="voice-card">
+                    <div class="voice-flag">🇰🇷</div>
+                    <div class="voice-lang">韩文</div>
+                    <div class="voice-count">50 种音色</div>
+                </a>
+                <a href="streaming.html?lang=西班牙文" class="voice-card">
+                    <div class="voice-flag">🇪🇸</div>
+                    <div class="voice-lang">西班牙文</div>
+                    <div class="voice-count">47 种音色</div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <p class="footer-copy">MiniMax TTS · 基于 MiniMax 语音合成 API · 个人工具</p>
+        </div>
+    </footer>
+
+    <!-- API Key Modal -->
+    <div id="apiKeyModal" class="modal-overlay hidden">
+        <div class="modal">
+            <h3 class="modal-title">设置 API Key</h3>
+            <div class="form-group">
+                <label class="form-label">MiniMax API Key</label>
+                <input type="password" id="apiKeyInput" class="form-input" placeholder="输入你的 API Key">
+            </div>
+            <p class="text-muted text-secondary" style="font-size: 0.8125rem; margin-bottom: 20px;">
+                API Key 保存在浏览器本地，仅用于调用 MiniMax API。
+            </p>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="hideApiKeyModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveApiKey()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast hidden"></div>
+
+    <script>
+        const API_KEY_STORAGE = 'minimax_tts_api_key';
+
+        function getApiKey() {
+            return localStorage.getItem(API_KEY_STORAGE) || '';
+        }
+
+        function setApiKey(key) {
+            localStorage.setItem(API_KEY_STORAGE, key);
+            updateApiKeyDisplay();
+        }
+
+        function updateApiKeyDisplay() {
+            const key = getApiKey();
+            const display = document.getElementById('apiKeyDisplay');
+            if (key) {
+                display.textContent = '****' + key.slice(-6);
+                display.classList.add('set');
+            } else {
+                display.textContent = '未设置 API Key';
+                display.classList.remove('set');
+            }
+        }
+
+        function showApiKeyModal() {
+            const modal = document.getElementById('apiKeyModal');
+            const input = document.getElementById('apiKeyInput');
+            input.value = getApiKey();
+            modal.classList.remove('hidden');
+        }
+
+        function hideApiKeyModal() {
+            document.getElementById('apiKeyModal').classList.add('hidden');
+        }
+
+        function saveApiKey() {
+            const input = document.getElementById('apiKeyInput');
+            const key = input.value.trim();
+            if (key) {
+                setApiKey(key);
+                hideApiKeyModal();
+                showToast('API Key 保存成功', 'success');
+            } else {
+                showToast('请输入有效的 API Key', 'error');
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast toast-' + type;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            updateApiKeyDisplay();
+        });
+
+        // 背景动画效果
+        document.addEventListener('mousemove', function(e) {
+            const hero = document.querySelector('.hero');
+            if (!hero) return;
+
+            const rect = hero.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            const y = (e.clientY - rect.top) / rect.height;
+
+            hero.style.background = `radial-gradient(circle at ${x * 100}% ${y * 100}%, rgba(79, 70, 229, 0.15) 0%, transparent 50%)`;
+        });
+
+        // ============ Hero 背景图轮播 ============
+        (function initCarousel() {
+            const slides = document.querySelectorAll('.carousel-slide');
+            const dots = document.querySelectorAll('.carousel-dot');
+            if (slides.length === 0) return;
+
+            let currentIndex = 0;
+            const totalSlides = slides.length;
+            let autoPlayTimer = null;
+            let isPaused = false;
+
+            function showSlide(index) {
+                slides.forEach(s => s.classList.remove('active'));
+                dots.forEach(d => d.classList.remove('active'));
+                slides[index].classList.add('active');
+                dots[index].classList.add('active');
+                currentIndex = index;
+            }
+
+            function nextSlide() {
+                showSlide((currentIndex + 1) % totalSlides);
+            }
+
+            // 自动轮播 - 每 5 秒切换
+            function startAutoPlay() {
+                autoPlayTimer = setInterval(() => {
+                    if (!isPaused) nextSlide();
+                }, 5000);
+            }
+
+            // 点击圆点切换
+            dots.forEach(dot => {
+                dot.addEventListener('click', function() {
+                    const index = parseInt(this.dataset.index);
+                    showSlide(index);
+                });
+            });
+
+            // 鼠标悬停暂停
+            const carousel = document.querySelector('.hero-image.carousel');
+            if (carousel) {
+                carousel.addEventListener('mouseenter', () => isPaused = true);
+                carousel.addEventListener('mouseleave', () => isPaused = false);
+            }
+
+            // 键盘左右键控制
+            document.addEventListener('keydown', function(e) {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                if (e.key === 'ArrowLeft') {
+                    showSlide((currentIndex - 1 + totalSlides) % totalSlides);
+                } else if (e.key === 'ArrowRight') {
+                    nextSlide();
+                }
+            });
+
+            // 启动
+            startAutoPlay();
+        })();
+    </script>
+</body>
+</html>

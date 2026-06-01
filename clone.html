@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音色复刻 - MiniMax TTS</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/home.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container header-inner">
+            <a href="/" class="logo">
+                <div class="logo-icon">🎙️</div>
+                <span>MiniMax TTS</span>
+            </a>
+            <nav class="nav">
+                <a href="/" class="nav-link">首页</a>
+                <a href="streaming.html" class="nav-link">同步合成</a>
+                <a href="http.html" class="nav-link">HTTP合成</a>
+                <a href="async.html" class="nav-link">异步合成</a>
+                <a href="clone.html" class="nav-link active">音色复刻</a>
+            </nav>
+            <div class="header-actions">
+                <div class="api-key-section">
+                    <span id="apiKeyDisplay" class="api-key-display">未设置 API Key</span>
+                    <button class="btn btn-secondary btn-sm" onclick="showApiKeyModal()">设置</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="page">
+        <div class="container">
+            <div class="page-header">
+                <h1 class="page-title">🎭 音色复刻</h1>
+                <p class="page-subtitle">上传音频样本，克隆你的专属音色。打造差异化品牌声音。</p>
+            </div>
+
+            <div class="work-area">
+                <div class="work-layout">
+                    <!-- Settings Panel -->
+                    <div class="settings-panel">
+                        <!-- 上传区域 -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">📤 上传音频</div>
+                            <div class="form-group">
+                                <label class="form-label">克隆音频（必填）</label>
+                                <div class="upload-zone" id="cloneAudioZone" onclick="document.getElementById('cloneAudioInput').click()">
+                                    <div class="upload-icon">🎵</div>
+                                    <div class="upload-text">点击或拖拽上传音频</div>
+                                    <div class="upload-hint">支持 mp3/m4a/wav，10秒-5分钟，最大20MB</div>
+                                    <input type="file" id="cloneAudioInput" style="display: none;" accept=".mp3,.m4a,.wav" onchange="handleCloneAudioUpload(event)">
+                                </div>
+                                <div id="cloneAudioInfo" class="hidden" style="margin-top: 12px; padding: 12px; background: var(--bg-dark); border-radius: var(--radius-md);">
+                                    <span id="cloneAudioName" style="font-size: 0.875rem;"></span>
+                                    <span id="cloneAudioSize" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 8px;"></span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">示例音频（可选，增强克隆效果）</label>
+                                <div class="upload-zone" id="promptAudioZone" onclick="document.getElementById('promptAudioInput').click()">
+                                    <div class="upload-icon">🎤</div>
+                                    <div class="upload-text">点击或拖拽上传示例音频</div>
+                                    <div class="upload-hint">支持 mp3/m4a/wav，小于8秒</div>
+                                    <input type="file" id="promptAudioInput" style="display: none;" accept=".mp3,.m4a,.wav" onchange="handlePromptAudioUpload(event)">
+                                </div>
+                                <div id="promptAudioInfo" class="hidden" style="margin-top: 12px; padding: 12px; background: var(--bg-dark); border-radius: var(--radius-md);">
+                                    <span id="promptAudioName" style="font-size: 0.875rem;"></span>
+                                    <span id="promptAudioSize" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 8px;"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 音色设置 -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">🎭 音色设置</div>
+                            <div class="form-group">
+                                <label class="form-label">自定义音色 ID</label>
+                                <input type="text" id="voiceIdInput" class="form-input" placeholder="例如: my_custom_voice">
+                                <div class="upload-hint" style="margin-top: 4px;">用于后续语音合成的音色标识符</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">测试文本</label>
+                                <textarea id="testTextInput" class="form-input" style="min-height: 80px;" placeholder="输入测试文本，用于试听克隆效果...">您好，这是您的专属音色试听。</textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">模型</label>
+                                <select id="modelSelect" class="form-input">
+                                    <option value="speech-2.8-hd" selected>speech-2.8-hd</option>
+                                    <option value="speech-2.8-turbo">speech-2.8-turbo</option>
+                                    <option value="speech-2.6-hd">speech-2.6-hd</option>
+                                    <option value="speech-2.6-turbo">speech-2.6-turbo</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 我的音色 -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">📋 我的音色</div>
+                            <div id="customVoicesList" style="max-height: 200px; overflow-y: auto;">
+                                <div class="text-muted text-center" style="padding: 20px; font-size: 0.875rem;">
+                                    暂无自定义音色
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Output Panel -->
+                    <div class="output-panel">
+                        <div class="output-area" style="min-height: 500px;">
+                            <div class="output-header">
+                                <span class="output-title">复刻进度</span>
+                            </div>
+
+                            <div id="cloneStatus" style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                                <div style="text-align: center; padding: 40px;">
+                                    <div style="font-size: 4rem; margin-bottom: 16px; opacity: 0.5;">🎭</div>
+                                    <h3 style="margin-bottom: 8px; color: var(--text-secondary);">准备就绪</h3>
+                                    <p style="color: var(--text-muted); font-size: 0.875rem;">上传音频并设置参数后开始复刻</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Clone Controls -->
+                        <div style="margin-top: 24px;">
+                            <button id="cloneBtn" class="btn btn-primary w-full" onclick="startClone()">
+                                🎭 开始复刻
+                            </button>
+                        </div>
+
+                        <!-- Clone Result -->
+                        <div id="cloneResult" class="hidden" style="margin-top: 24px;">
+                            <div class="card">
+                                <h4 style="margin-bottom: 16px;">🎉 复刻完成</h4>
+                                <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                                    音色 <code id="resultVoiceId" style="background: var(--bg-card); padding: 2px 8px; border-radius: 4px;"></code> 已成功创建
+                                </p>
+                                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                    <button class="btn btn-secondary" onclick="playPreview()">▶ 试听</button>
+                                    <button class="btn btn-secondary" onclick="downloadCloneAudio()">⬇ 下载</button>
+                                    <button class="btn btn-primary" onclick="useCloneVoice()">✨ 使用该音色</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Progress Steps -->
+                        <div id="cloneProgress" class="hidden" style="margin-top: 24px;">
+                            <div class="settings-group">
+                                <div class="settings-group-title">📊 复刻进度</div>
+                                <div id="step1" class="status-bar" style="margin-bottom: 12px;">
+                                    <div class="status-icon pending">1</div>
+                                    <div class="status-info">
+                                        <div class="status-text">上传克隆音频</div>
+                                        <div class="status-detail">等待中...</div>
+                                    </div>
+                                </div>
+                                <div id="step2" class="status-bar" style="margin-bottom: 12px;">
+                                    <div class="status-icon pending">2</div>
+                                    <div class="status-info">
+                                        <div class="status-text">上传示例音频</div>
+                                        <div class="status-detail">等待中...</div>
+                                    </div>
+                                </div>
+                                <div id="step3" class="status-bar" style="margin-bottom: 12px;">
+                                    <div class="status-icon pending">3</div>
+                                    <div class="status-info">
+                                        <div class="status-text">执行音色克隆</div>
+                                        <div class="status-detail">等待中...</div>
+                                    </div>
+                                </div>
+                                <div id="step4" class="status-bar">
+                                    <div class="status-icon pending">4</div>
+                                    <div class="status-info">
+                                        <div class="status-text">生成试听音频</div>
+                                        <div class="status-detail">等待中...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Audio Element -->
+    <audio id="audioElement" style="display: none;"></audio>
+
+    <!-- API Key Modal -->
+    <div id="apiKeyModal" class="modal-overlay hidden">
+        <div class="modal">
+            <h3 class="modal-title">设置 API Key</h3>
+            <div class="form-group">
+                <label class="form-label">MiniMax API Key</label>
+                <input type="password" id="apiKeyInput" class="form-input" placeholder="输入你的 API Key">
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="hideApiKeyModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveApiKey()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="js/custom-select.js"></script>
+    <script src="js/clone.js"></script>
+</body>
+</html>
