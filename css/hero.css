@@ -1,0 +1,300 @@
+/**
+ * 首页 Hero 全屏背景轮播样式
+ * 仅在 index.html 引用，不影响其他页面
+ */
+
+/* ============ Hero 全屏背景 ============ */
+.hero {
+    position: relative;
+    min-height: calc(100vh - 72px);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    isolation: isolate;
+    padding: 80px 0 100px;
+}
+
+.hero-bg-carousel {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    overflow: hidden;
+}
+
+.hero-bg-carousel .carousel-track {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.hero-bg-carousel .carousel-slide {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0;
+    transition: opacity 1.2s ease-in-out, transform 8s ease-out;
+    transform: scale(1.05);
+}
+
+.hero-bg-carousel .carousel-slide.active {
+    opacity: 1;
+    z-index: 1;
+    transform: scale(1);
+}
+
+.hero-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+        linear-gradient(135deg,
+            rgba(15, 23, 42, 0.88) 0%,
+            rgba(15, 23, 42, 0.55) 50%,
+            rgba(15, 23, 42, 0.75) 100%);
+}
+
+.hero-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse at top, transparent 0%, rgba(15, 23, 42, 0.4) 70%),
+        radial-gradient(ellipse at bottom, rgba(79, 70, 229, 0.15) 0%, transparent 60%);
+}
+
+/* 重写 carousel-dots 位置（覆盖 home.css 的底部 16px） */
+.hero .carousel-dots {
+    bottom: 60px;
+    padding: 8px 16px;
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    gap: 10px;
+}
+
+.hero .carousel-dot.active {
+    background: #fff;
+    width: 28px;
+    border-radius: 4px;
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+}
+
+/* Hero 内容 */
+.hero .hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 900px;
+    margin: 0 auto;
+    text-align: center;
+    color: #fff;
+    animation: heroFadeIn 1s ease-out;
+}
+
+@keyframes heroFadeIn {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 顶部徽章（覆盖默认） */
+.hero .hero-badge {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 28px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 8px 18px;
+}
+
+.hero-badge-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: #10b981;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #10b981;
+    animation: pulse 2s ease-in-out infinite;
+    margin-right: 2px;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.2); }
+}
+
+/* 主标题 */
+.hero .hero-title {
+    font-size: 5rem;
+    font-weight: 800;
+    line-height: 1.05;
+    margin-bottom: 28px;
+    background: linear-gradient(135deg, #fff 0%, #a5b4fc 60%, #c4b5fd 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.02em;
+}
+
+/* 副标题 */
+.hero .hero-subtitle {
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.75);
+    margin-bottom: 56px;
+    line-height: 1.7;
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* 滚动提示 */
+.scroll-hint {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    animation: scrollBounce 2s ease-in-out infinite;
+}
+
+.scroll-arrow {
+    width: 24px;
+    height: 24px;
+    border-right: 2px solid rgba(255, 255, 255, 0.5);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.5);
+    transform: rotate(45deg);
+}
+
+@keyframes scrollBounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(8px); }
+}
+
+/* ============ Stats 横排版 ============ */
+.hero .stats {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 24px 32px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+.hero .stat-item {
+    flex: 1;
+    text-align: center;
+    padding: 0;
+    background: none;
+    border: none;
+}
+
+.hero .stat-item:hover {
+    border: none;
+    transform: none;
+}
+
+.hero .stat-value {
+    font-size: 2.25rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+    margin-bottom: 0;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 2px;
+}
+
+.stat-unit {
+    font-size: 1rem;
+    font-weight: 500;
+    opacity: 0.7;
+    margin-left: 2px;
+}
+
+.hero .stat-label {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8125rem;
+    margin-top: 6px;
+    letter-spacing: 0.02em;
+}
+
+.stat-divider {
+    width: 1px;
+    height: 36px;
+    background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.2), transparent);
+}
+
+/* ============ 区块标题渐变（覆盖默认） ============ */
+.section-title {
+    font-size: 2.25rem;
+    background: linear-gradient(135deg, var(--text-primary) 0%, var(--primary-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ============ 响应式 ============ */
+@media (max-width: 1024px) {
+    .hero .hero-title {
+        font-size: 3.75rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero {
+        min-height: auto;
+        padding: 100px 0 80px;
+    }
+
+    .hero .hero-title {
+        font-size: 2.75rem;
+    }
+
+    .hero .hero-subtitle {
+        font-size: 1rem;
+        margin-bottom: 36px;
+    }
+
+    .hero .stats {
+        flex-wrap: wrap;
+        gap: 16px;
+        padding: 20px;
+    }
+
+    .stat-divider {
+        display: none;
+    }
+
+    .hero .stat-item {
+        flex: 0 0 40%;
+    }
+
+    .scroll-hint {
+        display: none;
+    }
+
+    .hero .carousel-dots {
+        bottom: 24px;
+    }
+}
