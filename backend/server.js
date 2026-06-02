@@ -21,7 +21,7 @@ const upload = multer({
 
 // 中间件
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, '..')));
 
 // 根路径返回首页

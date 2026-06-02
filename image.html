@@ -36,8 +36,14 @@
     <main class="page">
         <div class="container">
             <div class="page-header">
-                <h1 class="page-title">🎨 文生图</h1>
-                <p class="page-subtitle">输入文字描述，一键生成高质量图片。支持多种画风、宽高比、最多一次 9 张。</p>
+                <h1 class="page-title">🎨 图像生成</h1>
+                <p class="page-subtitle">支持文生图 / 图生图两种模式，多种画风、宽高比、最多一次 9 张。</p>
+            </div>
+
+            <!-- 模式切换 Tab -->
+            <div class="image-tabs">
+                <button class="image-tab active" data-mode="text2img">📝 文生图</button>
+                <button class="image-tab" data-mode="img2img">🖼️ 图生图</button>
             </div>
 
             <div class="work-area">
@@ -126,6 +132,24 @@
                             </div>
                             <textarea id="promptInput" class="form-input" style="flex: 1; min-height: 140px; resize: vertical;" placeholder="描述你想要生成的画面...（最多 1500 字符）"></textarea>
 
+                            <!-- 图生图：参考图上传区 -->
+                            <div id="refImageSection" class="hidden" style="margin-top: 16px;">
+                                <div class="settings-group-title" style="margin-bottom: 8px;">🖼️ 人物参考图（必填）</div>
+                                <div class="upload-zone" id="refImageZone" onclick="document.getElementById('refImageInput').click()">
+                                    <div id="refImagePreview" style="display: none;">
+                                        <img id="refImagePreviewImg" style="max-width: 100%; max-height: 200px; border-radius: var(--radius-md); margin-bottom: 8px;">
+                                        <div class="upload-text">点击或拖拽更换图片</div>
+                                    </div>
+                                    <div id="refImagePlaceholder">
+                                        <div class="upload-icon">📷</div>
+                                        <div class="upload-text">上传单人正面照片</div>
+                                        <div class="upload-hint">JPG / JPEG / PNG，最大 10MB</div>
+                                    </div>
+                                    <input type="file" id="refImageInput" style="display: none;" accept="image/jpeg,image/jpg,image/png" onchange="handleRefImageUpload(event)">
+                                </div>
+                                <div id="refImageInfo" class="text-muted" style="font-size: 0.75rem; margin-top: 6px; text-align: right;"></div>
+                            </div>
+
                             <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
                                 <button class="btn btn-secondary btn-sm" onclick="setPrompt('一只可爱的橘猫坐在窗台上，背景是夕阳，胶片摄影风格')">🐱 示例：橘猫</button>
                                 <button class="btn btn-secondary btn-sm" onclick="setPrompt('未来城市夜景，霓虹灯，赛博朋克风格，4K 高清')">🌃 示例：赛博朋克</button>
@@ -185,6 +209,40 @@
     <div id="toast" class="toast hidden"></div>
 
     <style>
+        .image-tabs {
+            display: flex;
+            gap: 4px;
+            padding: 4px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            max-width: 360px;
+            margin: 0 auto 24px;
+        }
+
+        .image-tab {
+            flex: 1;
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-size: 0.9375rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .image-tab:hover {
+            color: var(--text-primary);
+        }
+
+        .image-tab.active {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
         .image-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

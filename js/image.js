@@ -4,6 +4,8 @@
 
 const API_KEY_STORAGE = 'minimax_tts_api_key';
 let selectedModel = 'image-01';
+let currentMode = 'text2img'; // 'text2img' or 'img2img'
+let refImageData = null; // { dataUrl, size, type }
 let currentResults = []; // 保存当前生成的图片
 
 // 宽高比定义
@@ -150,6 +152,60 @@ function switchModel(model) {
     initAspectRatioSelect();
 }
 
+// ============ 模式切换 ============
+function switchMode(mode) {
+    currentMode = mode;
+    document.querySelectorAll('.image-tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.mode === mode);
+    });
+    const refSection = document.getElementById('refImageSection');
+    refSection.classList.toggle('hidden', mode !== 'img2img');
+    document.getElementById('generateBtn').textContent = mode === 'img2img' ? '🖼️ 生成图生图' : '🎨 开始生成';
+}
+
+// ============ 参考图上传 ============
+function handleRefImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // 校验
+    if (file.size > 10 * 1024 * 1024) {
+        showToast('图片不能超过 10MB', 'error');
+        return;
+    }
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (!validTypes.includes(file.type)) {
+        showToast('仅支持 JPG / JPEG / PNG 格式', 'error');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        refImageData = {
+            dataUrl: e.target.result,
+            size: file.size,
+            type: file.type
+        };
+        // 显示预览
+        document.getElementById('refImagePreviewImg').src = e.target.result;
+        document.getElementById('refImagePreview').style.display = 'block';
+        document.getElementById('refImagePlaceholder').style.display = 'none';
+        const sizeKB = (file.size / 1024).toFixed(1);
+        document.getElementById('refImageInfo').textContent = `已选择：${(file.name || 'image').substring(0, 30)} (${sizeKB} KB)`;
+        showToast('参考图已上传', 'success');
+    };
+    reader.readAsDataURL(file);
+}
+
+function clearRefImage() {
+    refImageData = null;
+    document.getElementById('refImagePreviewImg').src = '';
+    document.getElementById('refImagePreview').style.display = 'none';
+    document.getElementById('refImagePlaceholder').style.display = 'block';
+    document.getElementById('refImageInfo').textContent = '';
+    document.getElementById('refImageInput').value = '';
+}
+
 // ============ 调用 API ============
 async function generateImage() {
     const prompt = document.getElementById('promptInput').value.trim();
@@ -159,6 +215,12 @@ async function generateImage() {
     }
     if (prompt.length > 1500) {
         showToast('描述超过 1500 字符', 'error');
+        return;
+    }
+
+    // 图生图：必须上传参考图
+    if (currentMode === 'img2img' && !refImageData) {
+        showToast('请上传人物参考图', 'error');
         return;
     }
 
@@ -200,11 +262,22 @@ async function generateImage() {
         }
     }
 
+    // 图生图：附加 subject_reference
+    if (currentMode === 'img2img' && refImageData) {
+        payload.subject_reference = [
+            {
+                type: 'character',
+                image_file: refImageData.dataUrl // 直接传 base64 Data URL
+            }
+        ];
+    }
+
     const btn = document.getElementById('generateBtn');
     btn.disabled = true;
+    const origText = btn.textContent;
     btn.textContent = '⏳ 生成中...';
     document.getElementById('resultSection').classList.add('hidden');
-    setStatus('正在生成图片...', '预计需要 10-30 秒，请耐心等待', 'processing');
+    setStatus('正在生成图片...', currentMode === 'img2img' ? '图生图需要 20-40 秒' : '预计需要 10-30 秒，请耐心等待', 'processing');
 
     try {
         const response = await fetch('/api/image/generate', {
@@ -259,7 +332,7 @@ async function generateImage() {
         showToast('生成失败：' + error.message, 'error');
     } finally {
         btn.disabled = false;
-        btn.textContent = '🎨 开始生成';
+        btn.textContent = origText;
     }
 }
 
@@ -330,6 +403,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Tab 切换
+    document.querySelectorAll('.image-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            switchMode(this.dataset.mode);
+        });
+    });
+
     // 滑块
     document.getElementById('countSlider').addEventListener('input', function() {
         document.getElementById('countValue').textContent = this.value + ' 张';
@@ -341,4 +421,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 字符计数
     document.getElementById('promptInput').addEventListener('input', updateCharCount);
+
+    // 拖拽上传参考图
+    const dropZone = document.getElementById('refImageZone');
+    if (dropZone) {
+        ['dragenter', 'dragover'].forEach(ev => {
+            dropZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); dropZone.style.borderColor = 'var(--primary)'; });
+        });
+        ['dragleave', 'drop'].forEach(ev => {
+            dropZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); dropZone.style.borderColor = ''; });
+        });
+        dropZone.addEventListener('drop', e => {
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                const fakeEvent = { target: { files: [file] } };
+                handleRefImageUpload(fakeEvent);
+            }
+        });
+    }
 });
