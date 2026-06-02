@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>翻唱生成 - MiniMax Studio</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/home.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container header-inner">
+            <a href="../" class="logo">
+                <div class="logo-icon">🎙️</div>
+                <span>MiniMax Studio</span>
+            </a>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">← 全部模块</a>
+                <a href="generate.html" class="nav-link">音乐生成</a>
+                <a href="lyrics.html" class="nav-link">歌词生成</a>
+                <a href="cover.html" class="nav-link active">翻唱生成</a>
+            </nav>
+            <div class="header-actions">
+                <div class="api-key-section">
+                    <span id="apiKeyDisplay" class="api-key-display">未设置 API Key</span>
+                    <button class="btn btn-secondary btn-sm" onclick="showApiKeyModal()">设置</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="page">
+        <div class="container">
+            <div class="page-header">
+                <h1 class="page-title">🎤 翻唱生成</h1>
+                <p class="page-subtitle">基于已有歌曲生成不同风格的翻唱版本。支持自动提取歌词或自定义修改。</p>
+            </div>
+
+            <div class="work-area">
+                <div class="work-layout">
+                    <div class="settings-panel">
+                        <div class="settings-group">
+                            <div class="settings-group-title">🎚️ 翻唱模式</div>
+                            <div class="model-grid" style="grid-template-columns: 1fr;">
+                                <div class="model-option selected" data-mode="quick">
+                                    <div class="model-name">⚡ 一步翻唱</div>
+                                    <div class="model-desc">直接传 URL + 风格，自动提取歌词</div>
+                                </div>
+                                <div class="model-option" data-mode="advanced">
+                                    <div class="model-name">🔧 两步翻唱</div>
+                                    <div class="model-desc">先提取特征，可修改歌词再生成</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-group">
+                            <div class="settings-group-title">⚙️ 音频设置</div>
+                            <div class="form-group">
+                                <label class="form-label">采样率</label>
+                                <select id="sampleRateSelect" class="form-input">
+                                    <option value="16000">16000 Hz</option>
+                                    <option value="24000">24000 Hz</option>
+                                    <option value="32000">32000 Hz</option>
+                                    <option value="44100" selected>44100 Hz</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">比特率</label>
+                                <select id="bitrateSelect" class="form-input">
+                                    <option value="128000">128 kbps</option>
+                                    <option value="192000">192 kbps</option>
+                                    <option value="256000" selected>256 kbps</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="settings-group">
+                            <div class="settings-group-title">💡 风格示例</div>
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                <button class="btn btn-secondary btn-sm" onclick="setStyle('爵士风格，慵懒深夜酒吧，萨克斯')">🎷 爵士酒吧</button>
+                                <button class="btn btn-secondary btn-sm" onclick="setStyle('摇滚风格，失真吉他，强力鼓点')">🎸 重摇滚</button>
+                                <button class="btn btn-secondary btn-sm" onclick="setStyle('古风，竹笛，中国风，水墨')">🏯 中国风</button>
+                                <button class="btn btn-secondary btn-sm" onclick="setStyle('电子舞曲，EDM，Bass，重拍')">🎛️ EDM</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="output-panel">
+                        <div class="output-area">
+                            <!-- 一步翻唱：URL + 风格 -->
+                            <div id="quickSection">
+                                <div class="output-header">
+                                    <span class="output-title">⚡ 一步翻唱</span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">参考音频 URL</label>
+                                    <input type="text" id="audioUrlInput" class="form-input" placeholder="https://example.com/song.mp3">
+                                    <div class="upload-hint" style="margin-top: 6px;">公网可访问的 mp3/wav 链接</div>
+                                </div>
+
+                                <div class="form-group" style="margin-top: 16px;">
+                                    <label class="form-label">新风格描述</label>
+                                    <textarea id="styleInput" class="form-input" style="min-height: 70px; resize: vertical;" placeholder="爵士风格，慵懒深夜酒吧，萨克斯">爵士风格，慵懒深夜酒吧，萨克斯</textarea>
+                                </div>
+                            </div>
+
+                            <!-- 两步翻唱：先预处理，编辑歌词，再生成 -->
+                            <div id="advancedSection" class="hidden">
+                                <div class="output-header">
+                                    <span class="output-title">🔧 两步翻唱</span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">参考音频 URL</label>
+                                    <div style="display: flex; gap: 8px;">
+                                        <input type="text" id="audioUrl2Input" class="form-input" placeholder="https://example.com/song.mp3">
+                                        <button id="preprocessBtn" class="btn btn-secondary" onclick="runPreprocess()">提取</button>
+                                    </div>
+                                </div>
+
+                                <div id="preprocessResult" class="hidden" style="margin-top: 16px;">
+                                    <div class="status-bar" style="background: rgba(16, 185, 129, 0.1);">
+                                        <div class="status-icon success">✓</div>
+                                        <div class="status-info">
+                                            <div class="status-text">已提取音频特征</div>
+                                            <div id="preprocessMeta" class="status-detail"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group" style="margin-top: 16px;">
+                                    <label class="form-label">新风格描述</label>
+                                    <textarea id="styleInput2" class="form-input" style="min-height: 70px; resize: vertical;" placeholder="爵士风格，慵懒深夜酒吧，萨克斯">爵士风格，慵懒深夜酒吧，萨克斯</textarea>
+                                </div>
+
+                                <div class="form-group" style="margin-top: 16px;">
+                                    <label class="form-label">歌词 (10-1000 字符)</label>
+                                    <textarea id="lyricsEditInput" class="form-input" style="min-height: 160px; font-family: monospace; font-size: 0.875rem;" placeholder="[Verse 1]\n这里是修改后的第一段歌词\n用新的文字讲述你的故事\n\n[Chorus]\n全新的副歌部分\n用不同的感觉演唱"></textarea>
+                                    <div class="upload-hint" style="margin-top: 6px;">从上方"提取"后会自动填充，可自由编辑</div>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 16px;">
+                                <button id="generateBtn" class="btn btn-primary w-full" onclick="generateCover()">
+                                    🎤 生成翻唱
+                                </button>
+                            </div>
+
+                            <div id="statusSection" class="hidden" style="margin-top: 16px;">
+                                <div class="status-bar">
+                                    <div id="statusIcon" class="status-icon processing">⏳</div>
+                                    <div class="status-info">
+                                        <div id="statusText" class="status-text">生成中...</div>
+                                        <div id="statusDetail" class="status-detail">预计需要 30-90 秒</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="resultSection" class="hidden" style="margin-top: 24px;">
+                            <div class="card">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                    <h4 style="margin: 0;">🎉 翻唱生成成功</h4>
+                                    <button id="downloadBtn" class="btn btn-primary btn-sm">⬇ 下载</button>
+                                </div>
+                                <audio id="audioPlayer" controls style="width: 100%;"></audio>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="apiKeyModal" class="modal-overlay hidden">
+        <div class="modal">
+            <h3 class="modal-title">设置 API Key</h3>
+            <div class="form-group">
+                <label class="form-label">MiniMax API Key</label>
+                <input type="password" id="apiKeyInput" class="form-input" placeholder="输入你的 API Key">
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="hideApiKeyModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveApiKey()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="../js/music.js"></script>
+    <script>
+        let currentMode = 'quick';
+        let coverFeatureId = null;
+
+        function setStyle(text) {
+            const target = currentMode === 'quick' ? 'styleInput' : 'styleInput2';
+            document.getElementById(target).value = text;
+        }
+
+        // 模式切换
+        document.querySelectorAll('.model-option').forEach(opt => {
+            opt.addEventListener('click', function() {
+                document.querySelectorAll('.model-option').forEach(o => o.classList.remove('selected'));
+                this.classList.add('selected');
+                currentMode = this.dataset.mode;
+                document.getElementById('quickSection').classList.toggle('hidden', currentMode !== 'quick');
+                document.getElementById('advancedSection').classList.toggle('hidden', currentMode !== 'advanced');
+            });
+        });
+
+        // 预处理（提取音频特征和歌词）
+        async function runPreprocess() {
+            const audioUrl = document.getElementById('audioUrl2Input').value.trim();
+            if (!audioUrl) {
+                showToast('请输入音频 URL', 'error');
+                return;
+            }
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                showApiKeyModal();
+                showToast('请先设置 API Key', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('preprocessBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ 提取中...';
+            setStatus('正在提取音频特征...', '该步骤不计费', 'processing');
+
+            try {
+                const response = await fetch('/api/music/cover/preprocess', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': apiKey
+                    },
+                    body: JSON.stringify({
+                        model: 'music-cover',
+                        audio_url: audioUrl
+                    })
+                });
+
+                const result = await response.json();
+                btn.disabled = false;
+                btn.textContent = '提取';
+
+                if (!result.success) {
+                    throw new Error(result.error || '提取失败');
+                }
+
+                const d = result.data;
+                coverFeatureId = d.cover_feature_id || d.data?.cover_feature_id;
+                const lyrics = d.formatted_lyrics || d.data?.formatted_lyrics || '';
+                const duration = d.audio_duration || d.data?.audio_duration;
+
+                document.getElementById('preprocessResult').classList.remove('hidden');
+                document.getElementById('preprocessMeta').textContent =
+                    `时长：${duration ? duration.toFixed(1) + ' 秒' : '未知'} · 特征 ID 已保存`;
+
+                if (lyrics) {
+                    document.getElementById('lyricsEditInput').value = lyrics;
+                }
+
+                hideStatus();
+                setStatus('提取完成！', '可编辑歌词后生成翻唱', 'success');
+                setTimeout(hideStatus, 3000);
+                showToast('特征提取成功', 'success');
+
+            } catch (error) {
+                console.error('Preprocess error:', error);
+                setStatus('提取失败', error.message, 'error');
+                showToast('提取失败：' + error.message, 'error');
+                btn.disabled = false;
+                btn.textContent = '提取';
+            }
+        }
+
+        async function generateCover() {
+            const btn = document.getElementById('generateBtn');
+            setBtnLoading(btn, true, '🎤 生成翻唱');
+            document.getElementById('resultSection').classList.add('hidden');
+            setStatus('正在生成翻唱...', '音乐生成通常需要 30-90 秒', 'processing');
+
+            const audioSetting = {
+                sample_rate: parseInt(document.getElementById('sampleRateSelect').value),
+                bitrate: parseInt(document.getElementById('bitrateSelect').value),
+                format: 'mp3'
+            };
+
+            let payload;
+            if (currentMode === 'quick') {
+                const audioUrl = document.getElementById('audioUrlInput').value.trim();
+                const prompt = document.getElementById('styleInput').value.trim();
+                if (!audioUrl) { showToast('请输入参考音频 URL', 'error'); setBtnLoading(btn, false, '🎤 生成翻唱'); return; }
+                if (!prompt) { showToast('请输入新风格描述', 'error'); setBtnLoading(btn, false, '🎤 生成翻唱'); return; }
+                payload = {
+                    model: 'music-cover',
+                    audio_url: audioUrl,
+                    prompt,
+                    audio_setting: audioSetting,
+                    output_format: 'url'
+                };
+            } else {
+                const prompt = document.getElementById('styleInput2').value.trim();
+                const lyrics = document.getElementById('lyricsEditInput').value.trim();
+                if (!coverFeatureId) { showToast('请先点击"提取"获取音频特征', 'error'); setBtnLoading(btn, false, '🎤 生成翻唱'); return; }
+                if (!prompt) { showToast('请输入新风格描述', 'error'); setBtnLoading(btn, false, '🎤 生成翻唱'); return; }
+                if (!lyrics || lyrics.length < 10 || lyrics.length > 1000) {
+                    showToast('歌词长度需在 10-1000 字符之间', 'error');
+                    setBtnLoading(btn, false, '🎤 生成翻唱');
+                    return;
+                }
+                payload = {
+                    model: 'music-cover',
+                    cover_feature_id: coverFeatureId,
+                    lyrics,
+                    prompt,
+                    audio_setting: audioSetting,
+                    output_format: 'url'
+                };
+            }
+
+            const result = await callMusicAPI(payload);
+            setBtnLoading(btn, false, '🎤 生成翻唱');
+
+            if (!result.success) {
+                setStatus('生成失败', result.error, 'error');
+                showToast('生成失败：' + result.error, 'error');
+                return;
+            }
+
+            const audioUrl = extractAudioUrl(result.data);
+            if (!audioUrl) {
+                setStatus('生成失败', '未返回音频地址', 'error');
+                showToast('未返回音频', 'error');
+                return;
+            }
+
+            document.getElementById('audioPlayer').src = audioUrl;
+            document.getElementById('resultSection').classList.remove('hidden');
+            document.getElementById('downloadBtn').onclick = () => {
+                const a = document.createElement('a');
+                a.href = audioUrl;
+                a.download = `minimax_cover_${Date.now()}.mp3`;
+                a.click();
+                showToast('已开始下载', 'success');
+            };
+
+            setStatus('翻唱生成成功！', '点击播放器试听', 'success');
+            showToast('翻唱生成成功', 'success');
+        }
+    </script>
+</body>
+</html>

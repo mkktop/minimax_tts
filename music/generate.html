@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音乐生成 - MiniMax Studio</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/home.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container header-inner">
+            <a href="../" class="logo">
+                <div class="logo-icon">🎙️</div>
+                <span>MiniMax Studio</span>
+            </a>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">← 全部模块</a>
+                <a href="generate.html" class="nav-link active">音乐生成</a>
+                <a href="lyrics.html" class="nav-link">歌词生成</a>
+                <a href="cover.html" class="nav-link">翻唱生成</a>
+            </nav>
+            <div class="header-actions">
+                <div class="api-key-section">
+                    <span id="apiKeyDisplay" class="api-key-display">未设置 API Key</span>
+                    <button class="btn btn-secondary btn-sm" onclick="showApiKeyModal()">设置</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="page">
+        <div class="container">
+            <div class="page-header">
+                <h1 class="page-title">🎼 音乐生成</h1>
+                <p class="page-subtitle">输入风格描述和歌词，AI 自动编曲演唱，生成完整歌曲。最快 30 秒出歌。</p>
+            </div>
+
+            <div class="work-area">
+                <div class="work-layout">
+                    <!-- 设置面板 -->
+                    <div class="settings-panel">
+                        <div class="settings-group">
+                            <div class="settings-group-title">📦 模型</div>
+                            <div class="model-grid">
+                                <div class="model-option selected" data-model="music-2.6">
+                                    <div class="model-name">music-2.6</div>
+                                    <div class="model-desc">最新引擎 · 翻唱入心器乐入魂</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-group">
+                            <div class="settings-group-title">⚙️ 音频设置</div>
+                            <div class="form-group">
+                                <label class="form-label">采样率</label>
+                                <select id="sampleRateSelect" class="form-input">
+                                    <option value="16000">16000 Hz</option>
+                                    <option value="24000">24000 Hz</option>
+                                    <option value="32000">32000 Hz</option>
+                                    <option value="44100" selected>44100 Hz</option>
+                                    <option value="48000">48000 Hz</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">比特率</label>
+                                <select id="bitrateSelect" class="form-input">
+                                    <option value="128000">128 kbps</option>
+                                    <option value="192000">192 kbps</option>
+                                    <option value="256000" selected>256 kbps</option>
+                                    <option value="320000">320 kbps</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">格式</label>
+                                <select id="formatSelect" class="form-input">
+                                    <option value="mp3" selected>MP3</option>
+                                    <option value="wav">WAV</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="settings-group">
+                            <div class="settings-group-title">🎛️ 高级选项</div>
+                            <label class="checkbox-wrapper">
+                                <input type="checkbox" id="isInstrumental">
+                                <span>纯音乐（无人声）</span>
+                            </label>
+                            <label class="checkbox-wrapper" style="margin-top: 10px;">
+                                <input type="checkbox" id="lyricsOptimizer">
+                                <span>歌词为空时自动生成</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 输出面板 -->
+                    <div class="output-panel">
+                        <div class="output-area">
+                            <div class="output-header">
+                                <span class="output-title">风格描述 (Prompt)</span>
+                                <span class="text-muted" style="font-size: 0.8125rem;">用逗号分隔关键词</span>
+                            </div>
+                            <textarea id="promptInput" class="form-input" style="flex: 0 0 auto; min-height: 80px; resize: vertical;" placeholder="例：Mandopop, Festive, Upbeat, Celebration, New Year">Mandopop, Pop, Upbeat, Happy, Celebration</textarea>
+
+                            <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button class="btn btn-secondary btn-sm" onclick="setPrompt('Mandopop, Festive, Upbeat, New Year')">🎊 节日</button>
+                                <button class="btn btn-secondary btn-sm" onclick="setPrompt('Lo-fi, Chill, Relaxing, Mellow, Study')">📚 安静</button>
+                                <button class="btn btn-secondary btn-sm" onclick="setPrompt('Rock, Powerful, Energetic, Electric Guitar, Fast')">🎸 摇滚</button>
+                                <button class="btn btn-secondary btn-sm" onclick="setPrompt('Jazz, Smooth, Mellow, Saxophone, Night')">🎷 爵士</button>
+                            </div>
+
+                            <!-- 歌词输入 -->
+                            <div class="output-header" style="margin-top: 24px;">
+                                <span class="output-title">歌词 (Lyrics)</span>
+                                <div class="output-actions">
+                                    <span id="lyricsCount" class="text-muted" style="font-size: 0.8125rem;">0 / 1000</span>
+                                    <button class="btn btn-secondary btn-sm" onclick="clearLyrics()">清空</button>
+                                </div>
+                            </div>
+                            <textarea id="lyricsInput" class="form-input" style="flex: 1; min-height: 200px; resize: vertical; font-family: monospace; font-size: 0.875rem;" placeholder="[Verse 1]
+第一段歌词内容
+描述你的故事
+
+[Chorus]
+副歌部分
+重复的旋律"></textarea>
+
+                            <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button class="btn btn-secondary btn-sm" onclick="setLyrics(sampleLyrics)">📝 示例歌词</button>
+                                <button class="btn btn-secondary btn-sm" onclick="window.open('lyrics.html', '_blank')">✍️ AI 作词</button>
+                            </div>
+
+                            <div style="margin-top: 16px;">
+                                <button id="generateBtn" class="btn btn-primary w-full" onclick="generateMusic()">
+                                    🎵 开始生成
+                                </button>
+                            </div>
+
+                            <div id="statusSection" class="hidden" style="margin-top: 16px;">
+                                <div class="status-bar">
+                                    <div id="statusIcon" class="status-icon processing">⏳</div>
+                                    <div class="status-info">
+                                        <div id="statusText" class="status-text">生成中...</div>
+                                        <div id="statusDetail" class="status-detail">预计需要 30-90 秒</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 结果区 -->
+                        <div id="resultSection" class="hidden" style="margin-top: 24px;">
+                            <div class="card">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                    <h4 style="margin: 0;">🎉 生成成功</h4>
+                                    <button id="downloadBtn" class="btn btn-primary btn-sm">⬇ 下载音频</button>
+                                </div>
+                                <div id="audioPlayerWrap">
+                                    <audio id="audioPlayer" controls style="width: 100%;"></audio>
+                                </div>
+                                <div id="metaInfo" class="text-muted" style="font-size: 0.75rem; margin-top: 12px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="apiKeyModal" class="modal-overlay hidden">
+        <div class="modal">
+            <h3 class="modal-title">设置 API Key</h3>
+            <div class="form-group">
+                <label class="form-label">MiniMax API Key</label>
+                <input type="password" id="apiKeyInput" class="form-input" placeholder="输入你的 API Key">
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="hideApiKeyModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveApiKey()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="../js/music.js"></script>
+    <script>
+        const sampleLyrics = `[Intro]
+嘿！新年到！
+鞭炮声声响，锣鼓敲起来！
+
+[Verse 1]
+旧的一年已经过去，烟花点亮夜空
+新的一年已经来临，充满希望和感动
+家家户户贴春联，红红火火多喜庆
+孩子们换上新衣裳，脸上洋溢着笑容
+
+[Chorus]
+新年到！新年到！乐翻天！
+大家笑！大家跳！乐翻天！
+烦恼都忘掉，快乐最重要
+新的一年，好运一定会来到！
+
+[Bridge]
+所有的梦想，在新的一年里实现！
+所有的烦恼，在新的一年里不见！
+
+[Outro]
+新年好！乐翻天！`;
+
+        function setPrompt(text) {
+            document.getElementById('promptInput').value = text;
+        }
+
+        function setLyrics(text) {
+            document.getElementById('lyricsInput').value = text;
+            updateLyricsCount();
+        }
+
+        function clearLyrics() {
+            document.getElementById('lyricsInput').value = '';
+            updateLyricsCount();
+        }
+
+        function updateLyricsCount() {
+            const text = document.getElementById('lyricsInput').value;
+            const len = text.length;
+            document.getElementById('lyricsCount').textContent = `${len} / 1000`;
+            document.getElementById('lyricsCount').style.color = (len > 1000 || (len > 0 && len < 10)) ? 'var(--accent-red)' : '';
+        }
+
+        async function generateMusic() {
+            const prompt = document.getElementById('promptInput').value.trim();
+            const lyrics = document.getElementById('lyricsInput').value.trim();
+            const isInstrumental = document.getElementById('isInstrumental').checked;
+            const lyricsOptimizer = document.getElementById('lyricsOptimizer').checked;
+
+            if (!prompt) {
+                showToast('请输入风格描述', 'error');
+                return;
+            }
+
+            if (isInstrumental) {
+                // 纯音乐
+            } else {
+                if (!lyrics && !lyricsOptimizer) {
+                    showToast('请输入歌词或勾选"自动生成歌词"', 'error');
+                    return;
+                }
+                if (lyrics && (lyrics.length < 10 || lyrics.length > 1000)) {
+                    showToast('歌词长度需在 10-1000 字符之间', 'error');
+                    return;
+                }
+            }
+
+            const payload = {
+                model: 'music-2.6',
+                prompt,
+                lyrics,
+                lyrics_optimizer: lyricsOptimizer,
+                is_instrumental: isInstrumental,
+                audio_setting: {
+                    sample_rate: parseInt(document.getElementById('sampleRateSelect').value),
+                    bitrate: parseInt(document.getElementById('bitrateSelect').value),
+                    format: document.getElementById('formatSelect').value
+                },
+                output_format: 'url'
+            };
+
+            const btn = document.getElementById('generateBtn');
+            setBtnLoading(btn, true, '🎵 开始生成');
+            document.getElementById('resultSection').classList.add('hidden');
+            setStatus('正在生成音乐...', '音乐生成通常需要 30-90 秒，请耐心等待', 'processing');
+
+            const result = await callMusicAPI(payload);
+            setBtnLoading(btn, false, '🎵 开始生成');
+
+            if (!result.success) {
+                setStatus('生成失败', result.error, 'error');
+                showToast('生成失败：' + result.error, 'error');
+                return;
+            }
+
+            const audioUrl = extractAudioUrl(result.data);
+            if (!audioUrl) {
+                setStatus('生成失败', '未返回音频地址', 'error');
+                showToast('生成失败：未返回音频', 'error');
+                return;
+            }
+
+            const player = document.getElementById('audioPlayer');
+            player.src = audioUrl;
+            document.getElementById('resultSection').classList.remove('hidden');
+            document.getElementById('metaInfo').textContent = `风格：${prompt.slice(0, 50)}${prompt.length > 50 ? '...' : ''}`;
+
+            // 下载按钮
+            document.getElementById('downloadBtn').onclick = () => {
+                const a = document.createElement('a');
+                a.href = audioUrl;
+                a.download = `minimax_music_${Date.now()}.${document.getElementById('formatSelect').value}`;
+                a.click();
+                showToast('已开始下载', 'success');
+            };
+
+            setStatus('生成成功！', '点击播放器试听', 'success');
+            showToast('音乐生成成功', 'success');
+        }
+
+        document.getElementById('lyricsInput').addEventListener('input', updateLyricsCount);
+
+        // 接收来自 lyrics.html 的歌词
+        if (window.location.search.includes('from=lyrics')) {
+            const pending = sessionStorage.getItem('pending_lyrics');
+            if (pending) {
+                document.getElementById('lyricsInput').value = pending;
+                updateLyricsCount();
+                showToast('已从歌词生成页导入歌词', 'success');
+                sessionStorage.removeItem('pending_lyrics');
+            }
+        }
+    </script>
+</body>
+</html>

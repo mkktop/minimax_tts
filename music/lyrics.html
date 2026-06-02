@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>歌词生成 - MiniMax Studio</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/home.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container header-inner">
+            <a href="../" class="logo">
+                <div class="logo-icon">🎙️</div>
+                <span>MiniMax Studio</span>
+            </a>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">← 全部模块</a>
+                <a href="generate.html" class="nav-link">音乐生成</a>
+                <a href="lyrics.html" class="nav-link active">歌词生成</a>
+                <a href="cover.html" class="nav-link">翻唱生成</a>
+            </nav>
+            <div class="header-actions">
+                <div class="api-key-section">
+                    <span id="apiKeyDisplay" class="api-key-display">未设置 API Key</span>
+                    <button class="btn btn-secondary btn-sm" onclick="showApiKeyModal()">设置</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="page">
+        <div class="container">
+            <div class="page-header">
+                <h1 class="page-title">✍️ 歌词生成</h1>
+                <p class="page-subtitle">告诉 AI 一个主题，自动生成含段落结构（Verse / Chorus / Bridge）的完整歌词。</p>
+            </div>
+
+            <div class="work-area">
+                <div class="work-layout">
+                    <div class="settings-panel">
+                        <div class="settings-group">
+                            <div class="settings-group-title">🎚️ 生成模式</div>
+                            <div class="form-group">
+                                <label class="form-label">模式</label>
+                                <select id="modeSelect" class="form-input">
+                                    <option value="write_full_song" selected>完整歌曲 (write_full_song)</option>
+                                </select>
+                                <div class="upload-hint" style="margin-top: 6px;">自动包含 Intro / Verse / Chorus / Bridge / Outro</div>
+                            </div>
+                        </div>
+
+                        <div class="settings-group">
+                            <div class="settings-group-title">💡 示例主题</div>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <button class="btn btn-secondary btn-sm" onclick="setTheme('一首欢乐的新年歌曲')">🎊 一首欢乐的新年歌曲</button>
+                                <button class="btn btn-secondary btn-sm" onclick="setTheme('一首关于青春与梦想的校园民谣')">🎒 校园民谣</button>
+                                <button class="btn btn-secondary btn-sm" onclick="setTheme('一首失恋后释怀的慢摇情歌')">💔 失恋情歌</button>
+                                <button class="btn btn-secondary btn-sm" onclick="setTheme('一首激励人心的运动主题歌曲')">💪 运动励志</button>
+                                <button class="btn btn-secondary btn-sm" onclick="setTheme('一首雨夜独处的爵士情歌')">🌃 雨夜爵士</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="output-panel">
+                        <div class="output-area">
+                            <div class="output-header">
+                                <span class="output-title">歌曲主题</span>
+                                <span class="text-muted" style="font-size: 0.8125rem;">越具体效果越好</span>
+                            </div>
+                            <textarea id="themeInput" class="form-input" style="flex: 0 0 auto; min-height: 80px; resize: vertical;" placeholder="例：一首关于春天初恋的清新民谣"></textarea>
+
+                            <div style="margin-top: 16px;">
+                                <button id="generateBtn" class="btn btn-primary w-full" onclick="generateLyrics()">
+                                    ✍️ 生成歌词
+                                </button>
+                            </div>
+
+                            <div id="statusSection" class="hidden" style="margin-top: 16px;">
+                                <div class="status-bar">
+                                    <div id="statusIcon" class="status-icon processing">⏳</div>
+                                    <div class="status-info">
+                                        <div id="statusText" class="status-text">生成中...</div>
+                                        <div id="statusDetail" class="status-detail">预计需要 15-30 秒</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="resultSection" class="hidden" style="margin-top: 24px;">
+                            <div class="card">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                    <h4 style="margin: 0;">📝 生成结果</h4>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button id="copyBtn" class="btn btn-secondary btn-sm">📋 复制</button>
+                                        <button id="useBtn" class="btn btn-primary btn-sm">🎵 去生成音乐</button>
+                                    </div>
+                                </div>
+                                <pre id="lyricsOutput" style="white-space: pre-wrap; word-break: break-word; font-family: inherit; line-height: 1.8; padding: 16px; background: var(--bg-dark); border-radius: var(--radius-md); max-height: 500px; overflow-y: auto; font-size: 0.875rem;"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="apiKeyModal" class="modal-overlay hidden">
+        <div class="modal">
+            <h3 class="modal-title">设置 API Key</h3>
+            <div class="form-group">
+                <label class="form-label">MiniMax API Key</label>
+                <input type="password" id="apiKeyInput" class="form-input" placeholder="输入你的 API Key">
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="hideApiKeyModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveApiKey()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="../js/music.js"></script>
+    <script>
+        let currentLyrics = '';
+
+        function setTheme(text) {
+            document.getElementById('themeInput').value = text;
+        }
+
+        async function generateLyrics() {
+            const prompt = document.getElementById('themeInput').value.trim();
+            if (!prompt) {
+                showToast('请输入歌曲主题', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('generateBtn');
+            setBtnLoading(btn, true, '✍️ 生成歌词');
+            document.getElementById('resultSection').classList.add('hidden');
+            setStatus('正在生成歌词...', 'AI 正在思考创作', 'processing');
+
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                showApiKeyModal();
+                showToast('请先设置 API Key', 'error');
+                setBtnLoading(btn, false, '✍️ 生成歌词');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/music/lyrics', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': apiKey
+                    },
+                    body: JSON.stringify({
+                        mode: document.getElementById('modeSelect').value,
+                        prompt
+                    })
+                });
+
+                const result = await response.json();
+                setBtnLoading(btn, false, '✍️ 生成歌词');
+
+                if (!result.success) {
+                    throw new Error(result.error || '生成失败');
+                }
+
+                // 提取歌词文本
+                let lyricsText = '';
+                const d = result.data;
+                if (typeof d === 'string') lyricsText = d;
+                else if (d.lyrics) lyricsText = d.lyrics;
+                else if (d.data?.lyrics) lyricsText = d.data.lyrics;
+                else if (d.text) lyricsText = d.text;
+                else if (d.data?.text) lyricsText = d.data.text;
+                else lyricsText = JSON.stringify(d, null, 2);
+
+                currentLyrics = lyricsText;
+                document.getElementById('lyricsOutput').textContent = lyricsText;
+                document.getElementById('resultSection').classList.remove('hidden');
+                setStatus('生成成功！', '点击右侧按钮复制或生成音乐', 'success');
+                showToast('歌词生成成功', 'success');
+
+            } catch (error) {
+                console.error('Lyrics API error:', error);
+                setStatus('生成失败', error.message, 'error');
+                showToast('生成失败：' + error.message, 'error');
+                setBtnLoading(btn, false, '✍️ 生成歌词');
+            }
+        }
+
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            if (!currentLyrics) return;
+            navigator.clipboard.writeText(currentLyrics).then(() => {
+                showToast('已复制到剪贴板', 'success');
+            }).catch(() => {
+                // fallback
+                const ta = document.createElement('textarea');
+                ta.value = currentLyrics;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                showToast('已复制', 'success');
+            });
+        });
+
+        document.getElementById('useBtn').addEventListener('click', () => {
+            if (!currentLyrics) return;
+            // 跳转到音乐生成页，把歌词作为 query 传入
+            sessionStorage.setItem('pending_lyrics', currentLyrics);
+            window.location.href = 'generate.html?from=lyrics';
+        });
+    </script>
+</body>
+</html>

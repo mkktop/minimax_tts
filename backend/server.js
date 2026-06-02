@@ -839,6 +839,156 @@ app.post('/api/image/generate', validateApiKey, async (req, res) => {
     }
 });
 
+// ============ 音乐生成 ============
+// 音乐生成（text → music）
+app.post('/api/music/generate', validateApiKey, async (req, res) => {
+    try {
+        const {
+            model = 'music-2.6',
+            prompt,
+            lyrics = '',
+            lyrics_optimizer = false,
+            is_instrumental = false,
+            audio_setting = {},
+            output_format = 'url',
+            reference_music // 可选：参考音乐（用于风格迁移）
+        } = req.body;
+
+        if (!prompt && !is_instrumental) {
+            return res.status(400).json({
+                success: false,
+                error: 'prompt 不能为空'
+            });
+        }
+
+        // 校验歌词长度（10-1000 字符）
+        if (lyrics && (lyrics.length < 10 || lyrics.length > 1000)) {
+            return res.status(400).json({
+                success: false,
+                error: 'lyrics 长度需在 10-1000 字符之间'
+            });
+        }
+
+        const payload = {
+            model,
+            audio_setting: {
+                sample_rate: audio_setting.sample_rate || 44100,
+                bitrate: audio_setting.bitrate || 256000,
+                format: audio_setting.format || 'mp3'
+            },
+            output_format
+        };
+
+        if (is_instrumental) {
+            payload.is_instrumental = true;
+            payload.prompt = prompt;
+        } else {
+            if (prompt) payload.prompt = prompt;
+            if (lyrics) payload.lyrics = lyrics;
+            if (lyrics_optimizer) payload.lyrics_optimizer = true;
+        }
+
+        if (reference_music) {
+            payload.reference_music = reference_music;
+        }
+
+        const response = await axios.post(`${MINIMAX_API_BASE}/v1/music_generation`, payload, {
+            headers: {
+                'Authorization': `Bearer ${req.apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            timeout: 300000 // 5 分钟超时（音乐生成较慢）
+        });
+
+        res.json({
+            success: true,
+            data: response.data
+        });
+    } catch (error) {
+        console.error('Music Generation Error:', error.message);
+        const errData = error.response?.data;
+        res.status(500).json({
+            success: false,
+            error: errData?.base_resp?.status_msg || errData?.message || error.message,
+            code: errData?.base_resp?.status_code
+        });
+    }
+});
+
+// 歌词生成
+app.post('/api/music/lyrics', validateApiKey, async (req, res) => {
+    try {
+        const { mode = 'write_full_song', prompt } = req.body;
+
+        if (!prompt) {
+            return res.status(400).json({
+                success: false,
+                error: 'prompt 不能为空'
+            });
+        }
+
+        const response = await axios.post(`${MINIMAX_API_BASE}/v1/lyrics_generation`, {
+            mode,
+            prompt
+        }, {
+            headers: {
+                'Authorization': `Bearer ${req.apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            timeout: 120000
+        });
+
+        res.json({
+            success: true,
+            data: response.data
+        });
+    } catch (error) {
+        console.error('Lyrics Generation Error:', error.message);
+        const errData = error.response?.data;
+        res.status(500).json({
+            success: false,
+            error: errData?.base_resp?.status_msg || errData?.message || error.message
+        });
+    }
+});
+
+// 翻唱前处理（提取音频特征和歌词）
+app.post('/api/music/cover/preprocess', validateApiKey, async (req, res) => {
+    try {
+        const { model = 'music-cover', audio_url } = req.body;
+
+        if (!audio_url) {
+            return res.status(400).json({
+                success: false,
+                error: 'audio_url 不能为空'
+            });
+        }
+
+        const response = await axios.post(`${MINIMAX_API_BASE}/v1/music_cover_preprocess`, {
+            model,
+            audio_url
+        }, {
+            headers: {
+                'Authorization': `Bearer ${req.apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            timeout: 120000
+        });
+
+        res.json({
+            success: true,
+            data: response.data
+        });
+    } catch (error) {
+        console.error('Cover Preprocess Error:', error.message);
+        const errData = error.response?.data;
+        res.status(500).json({
+            success: false,
+            error: errData?.base_resp?.status_msg || errData?.message || error.message
+        });
+    }
+});
+
 // WebSocket 代理（用于流式合成）- 需要单独处理
 // 注意：实际的 WebSocket 代理需要在客户端直接连接 MiniMax API
 // 后端仅提供 token 验证和连接引导
@@ -859,6 +1009,7 @@ app.listen(PORT, () => {
 ║       - /async         异步合成                            ║
 ║       - /clone         音色复刻                            ║
 ║       - /image         文生图                              ║
+║       - /music         音乐生成                            ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
     `);

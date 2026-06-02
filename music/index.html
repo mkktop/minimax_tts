@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="../css/subhome.css">
 </head>
 <body>
-    <!-- Header -->
     <header class="header">
         <div class="container header-inner">
             <a href="../" class="logo">
@@ -28,15 +27,14 @@
         </div>
     </header>
 
-    <!-- Module Hero -->
     <section class="module-hero module-hero-music">
         <div class="container">
             <div class="module-hero-content">
                 <div class="module-hero-icon">🎵</div>
                 <div>
-                    <div class="module-hero-badge">音乐生成模块 · 即将推出</div>
+                    <div class="module-hero-badge">音乐生成模块</div>
                     <h1 class="module-hero-title">AI 音乐创作</h1>
-                    <p class="module-hero-desc">基于 MiniMax 音乐生成 API，文本生成音乐、AI 作曲、多风格人声合成</p>
+                    <p class="module-hero-desc">基于 Music 2.6 引擎，支持文本生成音乐、AI 作词、歌曲翻唱，最快 30 秒出歌</p>
                 </div>
             </div>
         </div>
@@ -44,37 +42,57 @@
 
     <main class="page">
         <div class="container">
-            <div class="coming-soon">
-                <div class="coming-soon-icon">🚧</div>
-                <h2 class="coming-soon-title">音乐生成模块开发中</h2>
-                <p class="coming-soon-desc">正在集成 MiniMax 音乐生成 API，敬请期待</p>
+            <div class="page-header">
+                <h2 class="page-title">选择创作方式</h2>
+                <p class="page-subtitle">三种创作方式自由组合，从灵感到成品一气呵成</p>
+            </div>
 
-                <div class="coming-soon-features">
-                    <div class="coming-soon-feature">
-                        <div class="csf-icon">🎼</div>
-                        <h4>AI 作曲</h4>
-                        <p>输入风格、情绪、节奏，AI 自动生成完整音乐</p>
+            <div class="subhome-grid subhome-grid-3">
+                <a href="generate.html" class="subhome-card">
+                    <div class="subhome-icon">🎼</div>
+                    <h3 class="subhome-title">音乐生成</h3>
+                    <p class="subhome-desc">输入风格 + 歌词，AI 谱曲演唱，生成完整歌曲。支持纯音乐（无人声）。</p>
+                    <div class="subhome-tags">
+                        <span class="subhome-tag">music-2.6</span>
+                        <span class="subhome-tag">人声/纯音乐</span>
+                        <span class="subhome-tag">自动优化歌词</span>
                     </div>
-                    <div class="coming-soon-feature">
-                        <div class="csf-icon">🎤</div>
-                        <h4>人声合成</h4>
-                        <p>AI 演唱歌词，多种音色风格</p>
-                    </div>
-                    <div class="coming-soon-feature">
-                        <div class="csf-icon">🎚️</div>
-                        <h4>多风格</h4>
-                        <p>流行、古典、电子、民谣等多种风格</p>
-                    </div>
-                    <div class="coming-soon-feature">
-                        <div class="csf-icon">⏱️</div>
-                        <h4>自定义时长</h4>
-                        <p>支持短片段到完整歌曲多种长度</p>
-                    </div>
-                </div>
+                    <span class="subhome-link">开始 →</span>
+                </a>
 
-                <div class="coming-soon-note">
-                    💡 当 API 文档就绪后，将在此页面添加对应的功能入口
-                </div>
+                <a href="lyrics.html" class="subhome-card">
+                    <div class="subhome-icon">✍️</div>
+                    <h3 class="subhome-title">歌词生成</h3>
+                    <p class="subhome-desc">只需告诉模型主题（"一首欢乐的新年歌曲"），自动生成含段落结构的完整歌词。</p>
+                    <div class="subhome-tags">
+                        <span class="subhome-tag">主题 → 歌词</span>
+                        <span class="subhome-tag">段落结构</span>
+                        <span class="subhome-tag">Verse/Chorus</span>
+                    </div>
+                    <span class="subhome-link">开始 →</span>
+                </a>
+
+                <a href="cover.html" class="subhome-card">
+                    <div class="subhome-icon">🎤</div>
+                    <h3 class="subhome-title">翻唱生成</h3>
+                    <p class="subhome-desc">基于已有歌曲生成不同风格的翻唱版本。支持自动提取歌词或自定义修改。</p>
+                    <div class="subhome-tags">
+                        <span class="subhome-tag">music-cover</span>
+                        <span class="subhome-tag">风格迁移</span>
+                        <span class="subhome-tag">歌词可改</span>
+                    </div>
+                    <span class="subhome-link">开始 →</span>
+                </a>
+            </div>
+
+            <div class="music-tips">
+                <h3>💡 使用提示</h3>
+                <ul>
+                    <li><strong>风格描述</strong>：用逗号分隔关键词，如 <code>Mandopop, Festive, Upbeat</code></li>
+                    <li><strong>歌词格式</strong>：用 <code>[Verse]</code>、<code>[Chorus]</code>、<code>[Bridge]</code>、<code>[Intro]</code>、<code>[Outro]</code> 等段落标签</li>
+                    <li><strong>纯音乐</strong>：勾选"无人声"开关，输入风格描述即可生成纯器乐曲</li>
+                    <li><strong>翻唱</strong>：支持公网 URL，歌词可从音频自动提取或自行修改</li>
+                </ul>
             </div>
         </div>
     </main>
@@ -85,7 +103,6 @@
         </div>
     </footer>
 
-    <!-- API Key Modal -->
     <div id="apiKeyModal" class="modal-overlay hidden">
         <div class="modal">
             <h3 class="modal-title">设置 API Key</h3>
@@ -101,6 +118,28 @@
     </div>
 
     <div id="toast" class="toast hidden"></div>
+
+    <style>
+        .subhome-grid-3 {
+            grid-template-columns: repeat(3, 1fr);
+            max-width: 1100px;
+            margin: 16px auto 0;
+        }
+        .music-tips {
+            margin-top: 48px;
+            padding: 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+        }
+        .music-tips h3 { margin-bottom: 12px; font-size: 1rem; }
+        .music-tips ul { padding-left: 20px; }
+        .music-tips li { color: var(--text-secondary); line-height: 1.8; font-size: 0.875rem; }
+        .music-tips code { background: var(--bg-dark); padding: 2px 6px; border-radius: 4px; font-size: 0.8125rem; color: var(--primary-light); }
+        @media (max-width: 1024px) {
+            .subhome-grid-3 { grid-template-columns: 1fr; }
+        }
+    </style>
 
     <script>
         const API_KEY_STORAGE = 'minimax_tts_api_key';
