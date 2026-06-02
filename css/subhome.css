@@ -8,6 +8,7 @@
     padding: 60px 0 48px;
     border-bottom: 1px solid var(--border-color);
     background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-dark) 100%);
+    overflow: hidden;
 }
 
 .module-hero-content {
@@ -15,18 +16,27 @@
     align-items: center;
     gap: 28px;
     max-width: 900px;
+    width: 100%;
     margin: 0 auto;
 }
 
 .module-hero-content > div:not(.module-hero-icon) {
-    flex: 1;
+    flex: 1 1 0;
     min-width: 0;
+    max-width: 100%;
 }
 
-.module-hero-title,
+.module-hero-title {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+}
+
 .module-hero-desc {
     word-wrap: break-word;
     overflow-wrap: break-word;
+    word-break: break-word;
+    max-width: 100%;
 }
 
 .module-hero-icon {
