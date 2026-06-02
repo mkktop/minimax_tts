@@ -254,10 +254,41 @@
     background-clip: text;
 }
 
+/* ============ 功能卡片 5 列布局 ============ */
+.features-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+}
+
+.features-grid .feature-card {
+    padding: 24px 20px;
+}
+
+.features-grid .feature-icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    border-radius: 12px;
+    font-size: 1.25rem;
+}
+
+.features-grid .feature-title {
+    font-size: 0.9375rem;
+}
+
+.features-grid .feature-desc {
+    font-size: 0.8125rem;
+    margin-bottom: 14px;
+}
+
 /* ============ 响应式 ============ */
 @media (max-width: 1024px) {
     .hero .hero-title {
         font-size: 3.75rem;
+    }
+
+    .features-grid {
+        grid-template-columns: repeat(3, 1fr);
     }
 }
 
@@ -296,5 +327,15 @@
 
     .hero .carousel-dots {
         bottom: 24px;
+    }
+
+    .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .features-grid {
+        grid-template-columns: 1fr;
     }
 }

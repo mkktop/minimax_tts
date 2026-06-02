@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文生图 - MiniMax TTS</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/home.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container header-inner">
+            <a href="/" class="logo">
+                <div class="logo-icon">🎙️</div>
+                <span>MiniMax TTS</span>
+            </a>
+            <nav class="nav">
+                <a href="/" class="nav-link">首页</a>
+                <a href="streaming.html" class="nav-link">同步合成</a>
+                <a href="http.html" class="nav-link">HTTP合成</a>
+                <a href="async.html" class="nav-link">异步合成</a>
+                <a href="clone.html" class="nav-link">音色复刻</a>
+                <a href="image.html" class="nav-link active">文生图</a>
+            </nav>
+            <div class="header-actions">
+                <div class="api-key-section">
+                    <span id="apiKeyDisplay" class="api-key-display">未设置 API Key</span>
+                    <button class="btn btn-secondary btn-sm" onclick="showApiKeyModal()">设置</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="page">
+        <div class="container">
+            <div class="page-header">
+                <h1 class="page-title">🎨 文生图</h1>
+                <p class="page-subtitle">输入文字描述，一键生成高质量图片。支持多种画风、宽高比、最多一次 9 张。</p>
+            </div>
+
+            <div class="work-area">
+                <div class="work-layout">
+                    <!-- Settings Panel -->
+                    <div class="settings-panel">
+                        <!-- 模型选择 -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">📦 模型选择</div>
+                            <div class="model-grid">
+                                <div class="model-option selected" data-model="image-01">
+                                    <div class="model-name">image-01</div>
+                                    <div class="model-desc">通用图像生成</div>
+                                </div>
+                                <div class="model-option" data-model="image-01-live">
+                                    <div class="model-name">image-01-live</div>
+                                    <div class="model-desc">支持画风</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 画风（仅 image-01-live）-->
+                        <div class="settings-group" id="styleGroup" style="display: none;">
+                            <div class="settings-group-title">🎨 画风设置</div>
+                            <div class="form-group">
+                                <label class="form-label">画风类型</label>
+                                <div id="styleTypeSelect"></div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">画风权重 (0.1 - 1.0)</label>
+                                <div class="form-slider">
+                                    <input type="range" id="styleWeightSlider" min="0.1" max="1" step="0.1" value="0.8">
+                                    <span class="slider-value" id="styleWeightValue">0.8</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 比例设置 -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">📐 尺寸设置</div>
+                            <div class="form-group">
+                                <label class="form-label">宽高比</label>
+                                <div id="aspectRatioSelect"></div>
+                                <div class="upload-hint" style="margin-top: 6px;" id="aspectHint">1024 × 1024</div>
+                            </div>
+                        </div>
+
+                        <!-- 生成数量 -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">🔢 生成选项</div>
+                            <div class="form-group">
+                                <label class="form-label">生成数量 (1 - 9)</label>
+                                <div class="form-slider">
+                                    <input type="range" id="countSlider" min="1" max="9" step="1" value="1">
+                                    <span class="slider-value" id="countValue">1 张</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">随机种子 (留空则随机)</label>
+                                <input type="number" id="seedInput" class="form-input" placeholder="例如 12345">
+                            </div>
+                        </div>
+
+                        <!-- 高级选项 -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">⚙️ 高级选项</div>
+                            <label class="checkbox-wrapper">
+                                <input type="checkbox" id="promptOptimizer">
+                                <span>自动优化 Prompt</span>
+                            </label>
+                            <label class="checkbox-wrapper" style="margin-top: 10px;">
+                                <input type="checkbox" id="aigcWatermark">
+                                <span>添加 AIGC 水印</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Output Panel -->
+                    <div class="output-panel">
+                        <div class="output-area">
+                            <div class="output-header">
+                                <span class="output-title">画面描述</span>
+                                <div class="output-actions">
+                                    <span id="charCount" class="text-muted" style="font-size: 0.8125rem;">0 / 1500</span>
+                                </div>
+                            </div>
+                            <textarea id="promptInput" class="form-input" style="flex: 1; min-height: 140px; resize: vertical;" placeholder="描述你想要生成的画面...（最多 1500 字符）"></textarea>
+
+                            <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button class="btn btn-secondary btn-sm" onclick="setPrompt('一只可爱的橘猫坐在窗台上，背景是夕阳，胶片摄影风格')">🐱 示例：橘猫</button>
+                                <button class="btn btn-secondary btn-sm" onclick="setPrompt('未来城市夜景，霓虹灯，赛博朋克风格，4K 高清')">🌃 示例：赛博朋克</button>
+                                <button class="btn btn-secondary btn-sm" onclick="setPrompt('水墨画风格的山间小屋，远山含黛，云雾缭绕')">🏔️ 示例：水墨山水</button>
+                            </div>
+
+                            <div style="margin-top: 16px;">
+                                <button id="generateBtn" class="btn btn-primary w-full" onclick="generateImage()">
+                                    🎨 开始生成
+                                </button>
+                            </div>
+
+                            <!-- 状态 -->
+                            <div id="statusSection" class="hidden" style="margin-top: 16px;">
+                                <div class="status-bar">
+                                    <div id="statusIcon" class="status-icon processing">⏳</div>
+                                    <div class="status-info">
+                                        <div id="statusText" class="status-text">生成中...</div>
+                                        <div id="statusDetail" class="status-detail">预计需要 10-30 秒</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 结果区 -->
+                        <div id="resultSection" class="hidden" style="margin-top: 24px;">
+                            <div class="card">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                    <h4 style="margin: 0;">🖼️ 生成结果 (<span id="resultCount">0</span> 张)</h4>
+                                    <button class="btn btn-secondary btn-sm" onclick="downloadAll()">⬇ 全部下载</button>
+                                </div>
+                                <div id="imageGrid" class="image-grid"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- API Key Modal -->
+    <div id="apiKeyModal" class="modal-overlay hidden">
+        <div class="modal">
+            <h3 class="modal-title">设置 API Key</h3>
+            <div class="form-group">
+                <label class="form-label">MiniMax API Key</label>
+                <input type="password" id="apiKeyInput" class="form-input" placeholder="输入你的 API Key">
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="hideApiKeyModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveApiKey()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast hidden"></div>
+
+    <style>
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .image-card {
+            position: relative;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+
+        .image-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+            box-shadow: 0 12px 30px -10px rgba(79, 70, 229, 0.3);
+        }
+
+        .image-card img {
+            width: 100%;
+            display: block;
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+        }
+
+        .image-card-actions {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 12px;
+            background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+            display: flex;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .image-card:hover .image-card-actions {
+            opacity: 1;
+        }
+
+        .image-card-actions .btn {
+            flex: 1;
+            padding: 6px 10px;
+            font-size: 0.75rem;
+        }
+    </style>
+
+    <script src="js/custom-select.js"></script>
+    <script src="js/image.js"></script>
+</body>
+</html>

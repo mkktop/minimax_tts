@@ -753,14 +753,64 @@ app.post('/api/clone/execute', validateApiKey, async (req, res) => {
 // 图片生成
 app.post('/api/image/generate', validateApiKey, async (req, res) => {
     try {
-        const { prompt, aspect_ratio, response_format, subject_reference } = req.body;
-
-        const payload = {
-            model: 'image-01',
+        const {
+            model = 'image-01',
             prompt,
-            aspect_ratio: aspect_ratio || '16:9',
-            response_format: response_format || 'base64'
-        };
+            aspect_ratio = '1:1',
+            width,
+            height,
+            response_format = 'base64',
+            seed,
+            n = 1,
+            prompt_optimizer = false,
+            aigc_watermark = false,
+            style,
+            subject_reference
+        } = req.body;
+
+        // 校验 prompt
+        if (!prompt || typeof prompt !== 'string') {
+            return res.status(400).json({
+                success: false,
+                error: 'prompt 不能为空'
+            });
+        }
+        if (prompt.length > 1500) {
+            return res.status(400).json({
+                success: false,
+                error: 'prompt 长度不能超过 1500 字符'
+            });
+        }
+
+        // 校验 model
+        const validModels = ['image-01', 'image-01-live'];
+        if (!validModels.includes(model)) {
+            return res.status(400).json({
+                success: false,
+                error: `model 必须为 ${validModels.join(' / ')}`
+            });
+        }
+
+        const payload = { model, prompt, response_format, n, prompt_optimizer, aigc_watermark };
+
+        // image-01 支持 aspect_ratio 和 width/height
+        // image-01-live 仅支持 aspect_ratio
+        if (model === 'image-01') {
+            if (aspect_ratio) payload.aspect_ratio = aspect_ratio;
+            if (width && height) {
+                payload.width = width;
+                payload.height = height;
+            }
+        } else if (model === 'image-01-live') {
+            if (aspect_ratio) payload.aspect_ratio = aspect_ratio;
+            if (style && typeof style === 'object') {
+                payload.style = style;
+            }
+        }
+
+        if (seed !== undefined && seed !== null) {
+            payload.seed = parseInt(seed);
+        }
 
         if (subject_reference) {
             payload.subject_reference = subject_reference;
@@ -770,7 +820,8 @@ app.post('/api/image/generate', validateApiKey, async (req, res) => {
             headers: {
                 'Authorization': `Bearer ${req.apiKey}`,
                 'Content-Type': 'application/json'
-            }
+            },
+            timeout: 120000
         });
 
         res.json({
@@ -779,9 +830,11 @@ app.post('/api/image/generate', validateApiKey, async (req, res) => {
         });
     } catch (error) {
         console.error('Image Generation Error:', error.message);
+        const errData = error.response?.data;
         res.status(500).json({
             success: false,
-            error: error.response?.data?.message || error.message
+            error: errData?.base_resp?.status_msg || errData?.message || error.message,
+            code: errData?.base_resp?.status_code
         });
     }
 });
@@ -805,6 +858,7 @@ app.listen(PORT, () => {
 ║       - /http          同步合成（HTTP）                     ║
 ║       - /async         异步合成                            ║
 ║       - /clone         音色复刻                            ║
+║       - /image         文生图                              ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
     `);
