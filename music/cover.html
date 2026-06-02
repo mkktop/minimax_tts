@@ -41,14 +41,28 @@
                     <div class="settings-panel">
                         <div class="settings-group">
                             <div class="settings-group-title">🎚️ 翻唱模式</div>
-                            <div class="model-grid" style="grid-template-columns: 1fr;">
+                            <div class="model-grid" style="grid-template-columns: 1fr 1fr;">
                                 <div class="model-option selected" data-mode="quick">
                                     <div class="model-name">⚡ 一步翻唱</div>
-                                    <div class="model-desc">直接传 URL + 风格，自动提取歌词</div>
+                                    <div class="model-desc">URL + 风格 → 自动提取歌词</div>
                                 </div>
                                 <div class="model-option" data-mode="advanced">
                                     <div class="model-name">🔧 两步翻唱</div>
-                                    <div class="model-desc">先提取特征，可修改歌词再生成</div>
+                                    <div class="model-desc">提取特征 → 修改歌词 → 生成</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-group">
+                            <div class="settings-group-title">📦 模型</div>
+                            <div class="model-grid">
+                                <div class="model-option selected" data-cover-model="music-cover">
+                                    <div class="model-name">music-cover</div>
+                                    <div class="model-desc">推荐 · RPM 较高</div>
+                                </div>
+                                <div class="model-option" data-cover-model="music-cover-free">
+                                    <div class="model-name">music-cover-free</div>
+                                    <div class="model-desc">限免 · 所有用户</div>
                                 </div>
                             </div>
                         </div>
@@ -165,6 +179,7 @@
                                     <button id="downloadBtn" class="btn btn-primary btn-sm">⬇ 下载</button>
                                 </div>
                                 <audio id="audioPlayer" controls style="width: 100%;"></audio>
+                                <div id="coverMetaInfo" class="text-muted" style="font-size: 0.75rem; margin-top: 12px;"></div>
                             </div>
                         </div>
                     </div>
@@ -193,7 +208,17 @@
     <script src="../js/custom-select.js"></script>
     <script>
         let currentMode = 'quick';
+        let coverModel = 'music-cover';
         let coverFeatureId = null;
+
+        // 模型选择
+        document.querySelectorAll('[data-cover-model]').forEach(opt => {
+            opt.addEventListener('click', function() {
+                document.querySelectorAll('[data-cover-model]').forEach(o => o.classList.remove('selected'));
+                this.classList.add('selected');
+                coverModel = this.dataset.coverModel;
+            });
+        });
 
         function setStyle(text) {
             const target = currentMode === 'quick' ? 'styleInput' : 'styleInput2';
@@ -296,12 +321,17 @@
                 const prompt = document.getElementById('styleInput').value.trim();
                 if (!audioUrl) { showToast('请输入参考音频 URL', 'error'); setBtnLoading(btn, false, '🎤 生成翻唱'); return; }
                 if (!prompt) { showToast('请输入新风格描述', 'error'); setBtnLoading(btn, false, '🎤 生成翻唱'); return; }
+                if (prompt.length < 10 || prompt.length > 300) {
+                    showToast('翻唱 prompt 长度需在 10-300 字符之间', 'error');
+                    setBtnLoading(btn, false, '🎤 生成翻唱');
+                    return;
+                }
                 payload = {
-                    model: 'music-cover',
+                    model: coverModel,
                     audio_url: audioUrl,
                     prompt,
                     audio_setting: audioSetting,
-                    output_format: 'url'
+                    output_format: 'hex'
                 };
             } else {
                 const prompt = document.getElementById('styleInput2').value.trim();
@@ -314,12 +344,12 @@
                     return;
                 }
                 payload = {
-                    model: 'music-cover',
+                    model: coverModel,
                     cover_feature_id: coverFeatureId,
                     lyrics,
                     prompt,
                     audio_setting: audioSetting,
-                    output_format: 'url'
+                    output_format: 'hex'
                 };
             }
 
@@ -332,18 +362,44 @@
                 return;
             }
 
-            const audioUrl = extractAudioUrl(result.data);
-            if (!audioUrl) {
-                setStatus('生成失败', '未返回音频地址', 'error');
+            const audioData = result.data?.data?.audio || result.data?.audio;
+            const extraInfo = result.data?.extra_info || {};
+            let blobUrl = null;
+            if (audioData) {
+                if (audioData.startsWith('http')) {
+                    blobUrl = audioData;
+                } else {
+                    const bytes = new Uint8Array(audioData.length / 2);
+                    for (let i = 0; i < audioData.length; i += 2) {
+                        bytes[i / 2] = parseInt(audioData.substr(i, 2), 16);
+                    }
+                    const blob = new Blob([bytes], { type: 'audio/mpeg' });
+                    blobUrl = URL.createObjectURL(blob);
+                }
+            }
+
+            if (!blobUrl) {
+                setStatus('生成失败', '未返回音频数据', 'error');
                 showToast('未返回音频', 'error');
                 return;
             }
 
-            document.getElementById('audioPlayer').src = audioUrl;
+            document.getElementById('audioPlayer').src = blobUrl;
             document.getElementById('resultSection').classList.remove('hidden');
+
+            const dur = extraInfo.music_duration ? (extraInfo.music_duration / 1000).toFixed(1) + ' 秒' : '';
+            const size = extraInfo.music_size ? (extraInfo.music_size / 1024).toFixed(1) + ' KB' : '';
+            const meta = [
+                `模型：${coverModel}`,
+                dur && `时长：${dur}`,
+                size && `大小：${size}`
+            ].filter(Boolean).join(' · ');
+            const existingMeta = document.getElementById('coverMetaInfo');
+            if (existingMeta) existingMeta.textContent = meta;
+
             document.getElementById('downloadBtn').onclick = () => {
                 const a = document.createElement('a');
-                a.href = audioUrl;
+                a.href = blobUrl;
                 a.download = `minimax_cover_${Date.now()}.mp3`;
                 a.click();
                 showToast('已开始下载', 'success');

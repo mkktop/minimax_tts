@@ -45,7 +45,11 @@
                             <div class="model-grid">
                                 <div class="model-option selected" data-model="music-2.6">
                                     <div class="model-name">music-2.6</div>
-                                    <div class="model-desc">最新引擎 · 翻唱入心器乐入魂</div>
+                                    <div class="model-desc">推荐 · RPM 较高</div>
+                                </div>
+                                <div class="model-option" data-model="music-2.6-free">
+                                    <div class="model-name">music-2.6-free</div>
+                                    <div class="model-desc">限免 · 所有用户可用</div>
                                 </div>
                             </div>
                         </div>
@@ -90,6 +94,10 @@
                                 <input type="checkbox" id="lyricsOptimizer">
                                 <span>歌词为空时自动生成</span>
                             </label>
+                            <label class="checkbox-wrapper" style="margin-top: 10px;">
+                                <input type="checkbox" id="aigcWatermark">
+                                <span>添加 AIGC 水印</span>
+                            </label>
                         </div>
                     </div>
 
@@ -113,7 +121,7 @@
                             <div class="output-header" style="margin-top: 24px;">
                                 <span class="output-title">歌词 (Lyrics)</span>
                                 <div class="output-actions">
-                                    <span id="lyricsCount" class="text-muted" style="font-size: 0.8125rem;">0 / 1000</span>
+                                    <span id="lyricsCount" class="text-muted" style="font-size: 0.8125rem;">0 / 3500</span>
                                     <button class="btn btn-secondary btn-sm" onclick="clearLyrics()">清空</button>
                                 </div>
                             </div>
@@ -225,15 +233,29 @@
         function updateLyricsCount() {
             const text = document.getElementById('lyricsInput').value;
             const len = text.length;
-            document.getElementById('lyricsCount').textContent = `${len} / 1000`;
-            document.getElementById('lyricsCount').style.color = (len > 1000 || (len > 0 && len < 10)) ? 'var(--accent-red)' : '';
+            const max = selectedModel.endsWith('-free') ? 1000 : 3500;
+            document.getElementById('lyricsCount').textContent = `${len} / ${max}`;
+            document.getElementById('lyricsCount').style.color = (len > max) ? 'var(--accent-red)' : '';
         }
+
+        let selectedModel = 'music-2.6';
+
+        // 模型选择
+        document.querySelectorAll('.model-option').forEach(opt => {
+            opt.addEventListener('click', function() {
+                document.querySelectorAll('.model-option').forEach(o => o.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedModel = this.dataset.model;
+                updateLyricsCount();
+            });
+        });
 
         async function generateMusic() {
             const prompt = document.getElementById('promptInput').value.trim();
             const lyrics = document.getElementById('lyricsInput').value.trim();
             const isInstrumental = document.getElementById('isInstrumental').checked;
             const lyricsOptimizer = document.getElementById('lyricsOptimizer').checked;
+            const aigcWatermark = document.getElementById('aigcWatermark').checked;
 
             if (!prompt) {
                 showToast('请输入风格描述', 'error');
@@ -247,24 +269,26 @@
                     showToast('请输入歌词或勾选"自动生成歌词"', 'error');
                     return;
                 }
-                if (lyrics && (lyrics.length < 10 || lyrics.length > 1000)) {
-                    showToast('歌词长度需在 10-1000 字符之间', 'error');
+                const max = selectedModel.endsWith('-free') ? 1000 : 3500;
+                if (lyrics && lyrics.length > max) {
+                    showToast(`歌词长度不能超过 ${max} 字符`, 'error');
                     return;
                 }
             }
 
             const payload = {
-                model: 'music-2.6',
+                model: selectedModel,
                 prompt,
                 lyrics,
                 lyrics_optimizer: lyricsOptimizer,
                 is_instrumental: isInstrumental,
+                aigc_watermark: aigcWatermark,
                 audio_setting: {
                     sample_rate: parseInt(document.getElementById('sampleRateSelect').value),
                     bitrate: parseInt(document.getElementById('bitrateSelect').value),
                     format: document.getElementById('formatSelect').value
                 },
-                output_format: 'url'
+                output_format: 'hex'
             };
 
             const btn = document.getElementById('generateBtn');
@@ -281,22 +305,51 @@
                 return;
             }
 
-            const audioUrl = extractAudioUrl(result.data);
-            if (!audioUrl) {
-                setStatus('生成失败', '未返回音频地址', 'error');
-                showToast('生成失败：未返回音频', 'error');
+            // 处理 hex / url 两种返回
+            const audioData = result.data?.data?.audio || result.data?.audio;
+            const extraInfo = result.data?.extra_info || {};
+            const mimeType = document.getElementById('formatSelect').value === 'mp3' ? 'audio/mpeg' : 'audio/wav';
+            let blobUrl = null;
+
+            if (audioData) {
+                if (audioData.startsWith('http')) {
+                    blobUrl = audioData;
+                } else {
+                    // hex → blob
+                    const bytes = new Uint8Array(audioData.length / 2);
+                    for (let i = 0; i < audioData.length; i += 2) {
+                        bytes[i / 2] = parseInt(audioData.substr(i, 2), 16);
+                    }
+                    const blob = new Blob([bytes], { type: mimeType });
+                    blobUrl = URL.createObjectURL(blob);
+                }
+            }
+
+            if (!blobUrl) {
+                setStatus('生成失败', '未返回音频数据', 'error');
+                showToast('未返回音频', 'error');
                 return;
             }
 
             const player = document.getElementById('audioPlayer');
-            player.src = audioUrl;
+            player.src = blobUrl;
             document.getElementById('resultSection').classList.remove('hidden');
-            document.getElementById('metaInfo').textContent = `风格：${prompt.slice(0, 50)}${prompt.length > 50 ? '...' : ''}`;
+
+            // 元信息
+            const dur = extraInfo.music_duration ? (extraInfo.music_duration / 1000).toFixed(1) + ' 秒' : '';
+            const size = extraInfo.music_size ? (extraInfo.music_size / 1024).toFixed(1) + ' KB' : '';
+            const meta = [
+                `模型：${selectedModel}`,
+                dur && `时长：${dur}`,
+                size && `大小：${size}`,
+                `风格：${prompt.slice(0, 30)}${prompt.length > 30 ? '...' : ''}`
+            ].filter(Boolean).join(' · ');
+            document.getElementById('metaInfo').textContent = meta;
 
             // 下载按钮
             document.getElementById('downloadBtn').onclick = () => {
                 const a = document.createElement('a');
-                a.href = audioUrl;
+                a.href = blobUrl;
                 a.download = `minimax_music_${Date.now()}.${document.getElementById('formatSelect').value}`;
                 a.click();
                 showToast('已开始下载', 'success');

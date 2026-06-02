@@ -847,58 +847,137 @@ app.post('/api/music/generate', validateApiKey, async (req, res) => {
             model = 'music-2.6',
             prompt,
             lyrics = '',
+            stream = false,
+            output_format = 'hex',
+            audio_setting = {},
+            aigc_watermark = false,
             lyrics_optimizer = false,
             is_instrumental = false,
-            audio_setting = {},
-            output_format = 'url',
-            reference_music // 可选：参考音乐（用于风格迁移）
+            audio_url,
+            audio_base64,
+            cover_feature_id
         } = req.body;
 
-        if (!prompt && !is_instrumental) {
+        // 校验 model
+        const validModels = ['music-2.6', 'music-cover', 'music-2.6-free', 'music-cover-free'];
+        if (!validModels.includes(model)) {
             return res.status(400).json({
                 success: false,
-                error: 'prompt 不能为空'
+                error: `model 必须为 ${validModels.join(' / ')}`
             });
         }
 
-        // 校验歌词长度（10-1000 字符）
-        if (lyrics && (lyrics.length < 10 || lyrics.length > 1000)) {
-            return res.status(400).json({
-                success: false,
-                error: 'lyrics 长度需在 10-1000 字符之间'
-            });
+        const isCover = model.startsWith('music-cover');
+
+        // 校验 prompt
+        if (isCover) {
+            // music-cover: 必填，10-300 字符
+            if (!prompt) {
+                return res.status(400).json({ success: false, error: 'music-cover 模型必须提供 prompt' });
+            }
+            if (prompt.length < 10 || prompt.length > 300) {
+                return res.status(400).json({ success: false, error: 'music-cover 的 prompt 长度需在 10-300 字符之间' });
+            }
+            if (audio_url && audio_base64) {
+                return res.status(400).json({ success: false, error: 'audio_url 和 audio_base64 只能二选一' });
+            }
+            if (cover_feature_id && (audio_url || audio_base64)) {
+                return res.status(400).json({ success: false, error: 'cover_feature_id 与 audio_url/audio_base64 互斥' });
+            }
+            if (!cover_feature_id && !audio_url && !audio_base64) {
+                return res.status(400).json({ success: false, error: '需要提供 audio_url / audio_base64 / cover_feature_id 其一' });
+            }
+        } else {
+            // music-2.6: 纯音乐必填 1-2000；非纯音乐可选 0-2000
+            if (is_instrumental) {
+                if (!prompt || prompt.length < 1 || prompt.length > 2000) {
+                    return res.status(400).json({ success: false, error: '纯音乐 prompt 长度需在 1-2000 字符之间' });
+                }
+            } else {
+                if (prompt && prompt.length > 2000) {
+                    return res.status(400).json({ success: false, error: 'prompt 长度不能超过 2000 字符' });
+                }
+            }
+        }
+
+        // 校验 lyrics
+        if (lyrics) {
+            if (isCover) {
+                if (lyrics.length < 10 || lyrics.length > 1000) {
+                    return res.status(400).json({ success: false, error: 'music-cover 的 lyrics 长度需在 10-1000 字符之间' });
+                }
+            } else {
+                // music-2.6
+                if (!is_instrumental) {
+                    if (lyrics.length < 1 || lyrics.length > 3500) {
+                        return res.status(400).json({ success: false, error: 'lyrics 长度需在 1-3500 字符之间' });
+                    }
+                }
+            }
+        } else if (!is_instrumental && !isCover && !lyrics_optimizer) {
+            // music-2.6 非纯音乐必须有 lyrics 或 lyrics_optimizer
+            return res.status(400).json({ success: false, error: 'music-2.6 非纯音乐必须提供 lyrics 或启用 lyrics_optimizer' });
+        } else if (!is_instrumental && isCover && !cover_feature_id) {
+            // music-cover 一键模式: lyrics 可选（自动 ASR 提取）；两步模式: lyrics 必填
+            // 在两步模式下 cover_feature_id 必填且 lyrics 必填
+            if (cover_feature_id) {
+                return res.status(400).json({ success: false, error: '两步翻唱必须提供修改后的 lyrics' });
+            }
+        }
+
+        // 校验 output_format
+        if (!['url', 'hex'].includes(output_format)) {
+            return res.status(400).json({ success: false, error: 'output_format 必须为 url 或 hex' });
+        }
+
+        // 校验 audio_setting
+        const validSampleRates = [16000, 24000, 32000, 44100];
+        const validBitrates = [32000, 64000, 128000, 256000];
+        const validFormats = ['mp3', 'wav', 'pcm'];
+        const sr = audio_setting.sample_rate || 44100;
+        const br = audio_setting.bitrate || 256000;
+        const fmt = audio_setting.format || 'mp3';
+        if (!validSampleRates.includes(sr)) {
+            return res.status(400).json({ success: false, error: `sample_rate 必须为 ${validSampleRates.join(' / ')}` });
+        }
+        if (!validBitrates.includes(br)) {
+            return res.status(400).json({ success: false, error: `bitrate 必须为 ${validBitrates.join(' / ')}` });
+        }
+        if (!validFormats.includes(fmt)) {
+            return res.status(400).json({ success: false, error: `format 必须为 ${validFormats.join(' / ')}` });
         }
 
         const payload = {
             model,
-            audio_setting: {
-                sample_rate: audio_setting.sample_rate || 44100,
-                bitrate: audio_setting.bitrate || 256000,
-                format: audio_setting.format || 'mp3'
-            },
+            audio_setting: { sample_rate: sr, bitrate: br, format: fmt },
             output_format
         };
 
-        if (is_instrumental) {
-            payload.is_instrumental = true;
-            payload.prompt = prompt;
-        } else {
-            if (prompt) payload.prompt = prompt;
-            if (lyrics) payload.lyrics = lyrics;
-            if (lyrics_optimizer) payload.lyrics_optimizer = true;
-        }
+        if (stream) payload.stream = true;
+        if (aigc_watermark) payload.aigc_watermark = true;
+        if (lyrics_optimizer && !isCover) payload.lyrics_optimizer = true;
+        if (is_instrumental && !isCover) payload.is_instrumental = true;
 
-        if (reference_music) {
-            payload.reference_music = reference_music;
-        }
+        if (prompt) payload.prompt = prompt;
+        if (lyrics) payload.lyrics = lyrics;
+        if (audio_url) payload.audio_url = audio_url;
+        if (audio_base64) payload.audio_base64 = audio_base64;
+        if (cover_feature_id) payload.cover_feature_id = cover_feature_id;
 
         const response = await axios.post(`${MINIMAX_API_BASE}/v1/music_generation`, payload, {
             headers: {
                 'Authorization': `Bearer ${req.apiKey}`,
                 'Content-Type': 'application/json'
             },
-            timeout: 300000 // 5 分钟超时（音乐生成较慢）
+            timeout: 300000,
+            responseType: stream ? 'stream' : 'json'
         });
+
+        if (stream) {
+            res.setHeader('Content-Type', 'audio/mpeg');
+            response.data.pipe(res);
+            return;
+        }
 
         res.json({
             success: true,
