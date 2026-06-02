@@ -18,6 +18,17 @@
     margin: 0 auto;
 }
 
+.module-hero-content > div:not(.module-hero-icon) {
+    flex: 1;
+    min-width: 0;
+}
+
+.module-hero-title,
+.module-hero-desc {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
 .module-hero-icon {
     width: 96px;
     height: 96px;
