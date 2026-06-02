@@ -3,25 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>同步合成（HTTP） - MiniMax TTS</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/home.css">
+    <title>异步合成 - MiniMax TTS</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/home.css">
 </head>
 <body>
     <!-- Header -->
     <header class="header">
         <div class="container header-inner">
-            <a href="/" class="logo">
+            <a href="../" class="logo">
                 <div class="logo-icon">🎙️</div>
                 <span>MiniMax TTS</span>
             </a>
             <nav class="nav">
-                <a href="/" class="nav-link">首页</a>
+                <a href="index.html" class="nav-link">首页</a>
                 <a href="streaming.html" class="nav-link">同步合成</a>
-                <a href="http.html" class="nav-link active">HTTP合成</a>
-                <a href="async.html" class="nav-link">异步合成</a>
+                <a href="http.html" class="nav-link">HTTP合成</a>
+                <a href="async.html" class="nav-link active">异步合成</a>
                 <a href="clone.html" class="nav-link">音色复刻</a>
-                <a href="image.html" class="nav-link">文生图</a>
+                <a href="../image/generate.html" class="nav-link">文生图</a>
             </nav>
             <div class="header-actions">
                 <div class="api-key-section">
@@ -36,8 +36,8 @@
     <main class="page">
         <div class="container">
             <div class="page-header">
-                <h1 class="page-title">📡 同步合成（HTTP）</h1>
-                <p class="page-subtitle">完整音频一次返回，简单可靠。适合大多数常规场景，最多 10,000 字符。</p>
+                <h1 class="page-title">⏳ 异步合成</h1>
+                <p class="page-subtitle">长文本专用，支持字幕时间戳。任务队列处理，最长支持 10 万字符。</p>
             </div>
 
             <div class="work-area">
@@ -164,6 +164,22 @@
                                     <option value="ogg">OGG</option>
                                 </select>
                             </div>
+                            <div class="form-group">
+                                <label class="form-label">声道</label>
+                                <select id="channelSelect" class="form-input">
+                                    <option value="1">单声道</option>
+                                    <option value="2" selected>立体声</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 字幕设置 -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">📝 字幕设置</div>
+                            <label class="checkbox-wrapper">
+                                <input type="checkbox" id="generateSubtitle">
+                                <span>生成字幕时间戳</span>
+                            </label>
                         </div>
                     </div>
 
@@ -171,26 +187,38 @@
                     <div class="output-panel">
                         <div class="output-area">
                             <div class="output-header">
-                                <span class="output-title">文本输入</span>
+                                <span class="output-title">长文本输入</span>
                                 <div class="output-actions">
-                                    <span id="charCount" class="text-muted" style="font-size: 0.8125rem;">0 / 10,000</span>
+                                    <span id="charCount" class="text-muted" style="font-size: 0.8125rem;">0 / 100,000</span>
                                 </div>
                             </div>
-                            <textarea id="textInput" class="form-input" style="flex: 1; min-height: 200px;" placeholder="请输入要转换的文本...（最多 10,000 字符）"></textarea>
+                            <textarea id="textInput" class="form-input" style="flex: 1; min-height: 200px;" placeholder="请输入要转换的长文本...（最多 100,000 字符）"></textarea>
+                            <div style="margin-top: 12px;">
+                                <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                                    <div class="upload-icon">📁</div>
+                                    <div class="upload-text">或上传文本文件（.txt/.zip）</div>
+                                    <div class="upload-hint">支持 .txt 纯文本或 .zip 压缩包</div>
+                                    <input type="file" id="fileInput" style="display: none;" accept=".txt,.zip" onchange="handleFileUpload(event)">
+                                </div>
+                            </div>
                             <div style="margin-top: 16px;">
-                                <button id="synthBtn" class="btn btn-primary w-full" onclick="startSynthesis()">
-                                    📡 开始合成
+                                <button id="synthBtn" class="btn btn-primary w-full" onclick="createTask()">
+                                    ⏳ 创建任务
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Status & Player -->
-                        <div id="statusSection" class="hidden" style="margin-top: 24px;">
+                        <!-- Task Status -->
+                        <div id="taskSection" class="hidden" style="margin-top: 24px;">
                             <div class="status-bar">
                                 <div id="statusIcon" class="status-icon pending">⏳</div>
                                 <div class="status-info">
-                                    <div id="statusText" class="status-text">准备就绪</div>
+                                    <div id="statusText" class="status-text">等待中</div>
                                     <div id="statusDetail" class="status-detail"></div>
+                                </div>
+                                <div style="margin-left: auto;">
+                                    <input type="text" id="taskIdInput" class="form-input" style="width: 200px;" placeholder="输入 Task ID 查询">
+                                    <button class="btn btn-secondary btn-sm" style="margin-left: 8px;" onclick="queryTask()">查询</button>
                                 </div>
                             </div>
 
@@ -200,16 +228,14 @@
                                 </div>
                             </div>
 
-                            <div id="audioPlayer" class="audio-player hidden" style="margin-top: 16px;">
-                                <div class="audio-controls">
-                                    <button class="audio-play-btn" onclick="togglePlay()">▶</button>
-                                    <div class="audio-progress" onclick="seekAudio(event)">
-                                        <div id="audioProgressFill" class="audio-progress-fill" style="width: 0%"></div>
+                            <!-- Task Result -->
+                            <div id="taskResult" class="hidden" style="margin-top: 24px;">
+                                <div class="card">
+                                    <h4 style="margin-bottom: 16px;">🎉 任务完成</h4>
+                                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                        <button class="btn btn-primary" onclick="downloadAudio()">⬇ 下载音频</button>
+                                        <button id="downloadSubtitleBtn" class="btn btn-secondary hidden" onclick="downloadSubtitle()">📄 下载字幕</button>
                                     </div>
-                                    <span id="audioTime" class="audio-time">00:00 / 00:00</span>
-                                </div>
-                                <div style="margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
-                                    <button class="btn btn-secondary btn-sm" onclick="downloadAudio()">⬇ 下载</button>
                                 </div>
                             </div>
                         </div>
@@ -237,11 +263,8 @@
     <!-- Toast -->
     <div id="toast" class="toast hidden"></div>
 
-    <!-- Audio Element -->
-    <audio id="audioElement" style="display: none;"></audio>
-
-    <script src="js/custom-select.js"></script>
-    <script src="js/voice-library.js"></script>
-    <script src="js/http.js"></script>
+    <script src="../js/custom-select.js"></script>
+    <script src="../js/voice-library.js"></script>
+    <script src="../js/async.js"></script>
 </body>
 </html>

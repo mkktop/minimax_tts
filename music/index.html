@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音乐生成 - MiniMax Studio</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/home.css">
+    <link rel="stylesheet" href="../css/subhome.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container header-inner">
+            <a href="../" class="logo">
+                <div class="logo-icon">🎙️</div>
+                <span>MiniMax Studio</span>
+            </a>
+            <nav class="nav">
+                <a href="../" class="nav-link">← 全部模块</a>
+            </nav>
+            <div class="header-actions">
+                <div class="api-key-section">
+                    <span id="apiKeyDisplay" class="api-key-display">未设置 API Key</span>
+                    <button class="btn btn-secondary btn-sm" onclick="showApiKeyModal()">设置</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Module Hero -->
+    <section class="module-hero module-hero-music">
+        <div class="container">
+            <div class="module-hero-content">
+                <div class="module-hero-icon">🎵</div>
+                <div>
+                    <div class="module-hero-badge">音乐生成模块 · 即将推出</div>
+                    <h1 class="module-hero-title">AI 音乐创作</h1>
+                    <p class="module-hero-desc">基于 MiniMax 音乐生成 API，文本生成音乐、AI 作曲、多风格人声合成</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <main class="page">
+        <div class="container">
+            <div class="coming-soon">
+                <div class="coming-soon-icon">🚧</div>
+                <h2 class="coming-soon-title">音乐生成模块开发中</h2>
+                <p class="coming-soon-desc">正在集成 MiniMax 音乐生成 API，敬请期待</p>
+
+                <div class="coming-soon-features">
+                    <div class="coming-soon-feature">
+                        <div class="csf-icon">🎼</div>
+                        <h4>AI 作曲</h4>
+                        <p>输入风格、情绪、节奏，AI 自动生成完整音乐</p>
+                    </div>
+                    <div class="coming-soon-feature">
+                        <div class="csf-icon">🎤</div>
+                        <h4>人声合成</h4>
+                        <p>AI 演唱歌词，多种音色风格</p>
+                    </div>
+                    <div class="coming-soon-feature">
+                        <div class="csf-icon">🎚️</div>
+                        <h4>多风格</h4>
+                        <p>流行、古典、电子、民谣等多种风格</p>
+                    </div>
+                    <div class="coming-soon-feature">
+                        <div class="csf-icon">⏱️</div>
+                        <h4>自定义时长</h4>
+                        <p>支持短片段到完整歌曲多种长度</p>
+                    </div>
+                </div>
+
+                <div class="coming-soon-note">
+                    💡 当 API 文档就绪后，将在此页面添加对应的功能入口
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p class="footer-copy"><a href="../" style="color: var(--text-muted);">← 返回 MiniMax Studio 主页</a></p>
+        </div>
+    </footer>
+
+    <!-- API Key Modal -->
+    <div id="apiKeyModal" class="modal-overlay hidden">
+        <div class="modal">
+            <h3 class="modal-title">设置 API Key</h3>
+            <div class="form-group">
+                <label class="form-label">MiniMax API Key</label>
+                <input type="password" id="apiKeyInput" class="form-input" placeholder="输入你的 API Key">
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="hideApiKeyModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveApiKey()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script>
+        const API_KEY_STORAGE = 'minimax_tts_api_key';
+        function getApiKey() { return localStorage.getItem(API_KEY_STORAGE) || ''; }
+        function setApiKey(key) { localStorage.setItem(API_KEY_STORAGE, key); updateApiKeyDisplay(); }
+        function updateApiKeyDisplay() {
+            const key = getApiKey();
+            const display = document.getElementById('apiKeyDisplay');
+            if (key) { display.textContent = '****' + key.slice(-6); display.classList.add('set'); }
+            else { display.textContent = '未设置 API Key'; display.classList.remove('set'); }
+        }
+        function showApiKeyModal() {
+            document.getElementById('apiKeyInput').value = getApiKey();
+            document.getElementById('apiKeyModal').classList.remove('hidden');
+        }
+        function hideApiKeyModal() { document.getElementById('apiKeyModal').classList.add('hidden'); }
+        function saveApiKey() {
+            const key = document.getElementById('apiKeyInput').value.trim();
+            if (key) { setApiKey(key); hideApiKeyModal(); showToast('API Key 保存成功', 'success'); }
+            else { showToast('请输入有效的 API Key', 'error'); }
+        }
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast toast-' + type;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+        document.addEventListener('DOMContentLoaded', updateApiKeyDisplay);
+    </script>
+</body>
+</html>

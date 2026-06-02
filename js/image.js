@@ -439,4 +439,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // URL 参数 ?mode=img2img 自动切换
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get('mode');
+    if (mode === 'img2img') {
+        switchMode('img2img');
+    }
 });

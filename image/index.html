@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片生成 - MiniMax Studio</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/home.css">
+    <link rel="stylesheet" href="../css/subhome.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container header-inner">
+            <a href="../" class="logo">
+                <div class="logo-icon">🎙️</div>
+                <span>MiniMax Studio</span>
+            </a>
+            <nav class="nav">
+                <a href="../" class="nav-link">← 全部模块</a>
+            </nav>
+            <div class="header-actions">
+                <div class="api-key-section">
+                    <span id="apiKeyDisplay" class="api-key-display">未设置 API Key</span>
+                    <button class="btn btn-secondary btn-sm" onclick="showApiKeyModal()">设置</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Module Hero -->
+    <section class="module-hero module-hero-image">
+        <div class="container">
+            <div class="module-hero-content">
+                <div class="module-hero-icon">🎨</div>
+                <div>
+                    <div class="module-hero-badge">图片生成模块</div>
+                    <h1 class="module-hero-title">AI 图像生成</h1>
+                    <p class="module-hero-desc">基于 MiniMax 图像生成 API，支持文生图 / 图生图，多种画风、宽高比，最快 10 秒出图</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <main class="page">
+        <div class="container">
+            <div class="page-header">
+                <h2 class="page-title">选择生成模式</h2>
+                <p class="page-subtitle">两种生成模式自由切换，满足不同创作需求</p>
+            </div>
+
+            <div class="subhome-grid subhome-grid-2">
+                <a href="generate.html" class="subhome-card">
+                    <div class="subhome-icon">📝</div>
+                    <h3 class="subhome-title">文生图</h3>
+                    <p class="subhome-desc">输入文字描述，AI 生成高质量图片。支持 8 种宽高比，多种画风，一次最多 9 张。</p>
+                    <div class="subhome-tags">
+                        <span class="subhome-tag">image-01 / image-01-live</span>
+                        <span class="subhome-tag">8 种比例</span>
+                        <span class="subhome-tag">1-9 张</span>
+                    </div>
+                    <span class="subhome-link">开始 →</span>
+                </a>
+
+                <a href="generate.html?mode=img2img" class="subhome-card">
+                    <div class="subhome-icon">🖼️</div>
+                    <h3 class="subhome-title">图生图</h3>
+                    <p class="subhome-desc">上传人物参考图 + 文字描述，生成保留人物特征的新场景画面。</p>
+                    <div class="subhome-tags">
+                        <span class="subhome-tag">人物参考</span>
+                        <span class="subhome-tag">character 类型</span>
+                        <span class="subhome-tag">10MB 限制</span>
+                    </div>
+                    <span class="subhome-link">开始 →</span>
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p class="footer-copy"><a href="../" style="color: var(--text-muted);">← 返回 MiniMax Studio 主页</a></p>
+        </div>
+    </footer>
+
+    <!-- API Key Modal -->
+    <div id="apiKeyModal" class="modal-overlay hidden">
+        <div class="modal">
+            <h3 class="modal-title">设置 API Key</h3>
+            <div class="form-group">
+                <label class="form-label">MiniMax API Key</label>
+                <input type="password" id="apiKeyInput" class="form-input" placeholder="输入你的 API Key">
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="hideApiKeyModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveApiKey()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script>
+        const API_KEY_STORAGE = 'minimax_tts_api_key';
+        function getApiKey() { return localStorage.getItem(API_KEY_STORAGE) || ''; }
+        function setApiKey(key) { localStorage.setItem(API_KEY_STORAGE, key); updateApiKeyDisplay(); }
+        function updateApiKeyDisplay() {
+            const key = getApiKey();
+            const display = document.getElementById('apiKeyDisplay');
+            if (key) { display.textContent = '****' + key.slice(-6); display.classList.add('set'); }
+            else { display.textContent = '未设置 API Key'; display.classList.remove('set'); }
+        }
+        function showApiKeyModal() {
+            document.getElementById('apiKeyInput').value = getApiKey();
+            document.getElementById('apiKeyModal').classList.remove('hidden');
+        }
+        function hideApiKeyModal() { document.getElementById('apiKeyModal').classList.add('hidden'); }
+        function saveApiKey() {
+            const key = document.getElementById('apiKeyInput').value.trim();
+            if (key) { setApiKey(key); hideApiKeyModal(); showToast('API Key 保存成功', 'success'); }
+            else { showToast('请输入有效的 API Key', 'error'); }
+        }
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast toast-' + type;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+        document.addEventListener('DOMContentLoaded', updateApiKeyDisplay);
+    </script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>语音生成 - MiniMax Studio</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/home.css">
+    <link rel="stylesheet" href="../css/subhome.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container header-inner">
+            <a href="../" class="logo">
+                <div class="logo-icon">🎙️</div>
+                <span>MiniMax Studio</span>
+            </a>
+            <nav class="nav">
+                <a href="../" class="nav-link">← 全部模块</a>
+            </nav>
+            <div class="header-actions">
+                <div class="api-key-section">
+                    <span id="apiKeyDisplay" class="api-key-display">未设置 API Key</span>
+                    <button class="btn btn-secondary btn-sm" onclick="showApiKeyModal()">设置</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Module Hero -->
+    <section class="module-hero module-hero-tts">
+        <div class="container">
+            <div class="module-hero-content">
+                <div class="module-hero-icon">🎙️</div>
+                <div>
+                    <div class="module-hero-badge">语音生成模块</div>
+                    <h1 class="module-hero-title">文字转语音 · 音色复刻</h1>
+                    <p class="module-hero-desc">基于 MiniMax TTS API，327+ 音色、24 种语言，覆盖同步 / 异步 / 复刻全场景</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <main class="page">
+        <div class="container">
+            <div class="page-header">
+                <h2 class="page-title">选择合成方式</h2>
+                <p class="page-subtitle">不同方式适用于不同场景，选择最适合你的开始创作</p>
+            </div>
+
+            <div class="subhome-grid">
+                <a href="streaming.html" class="subhome-card">
+                    <div class="subhome-icon">⚡</div>
+                    <h3 class="subhome-title">同步合成（流式）</h3>
+                    <p class="subhome-desc">WebSocket 流式传输，边合成边播放，最低延迟。</p>
+                    <div class="subhome-tags">
+                        <span class="subhome-tag">流式</span>
+                        <span class="subhome-tag">≤10,000字</span>
+                        <span class="subhome-tag">低延迟</span>
+                    </div>
+                    <span class="subhome-link">进入 →</span>
+                </a>
+
+                <a href="http.html" class="subhome-card">
+                    <div class="subhome-icon">📡</div>
+                    <h3 class="subhome-title">同步合成（HTTP）</h3>
+                    <p class="subhome-desc">完整音频一次返回，简单可靠，适合非实时场景。</p>
+                    <div class="subhome-tags">
+                        <span class="subhome-tag">完整返回</span>
+                        <span class="subhome-tag">≤10,000字</span>
+                        <span class="subhome-tag">简单</span>
+                    </div>
+                    <span class="subhome-link">进入 →</span>
+                </a>
+
+                <a href="async.html" class="subhome-card">
+                    <div class="subhome-icon">⏳</div>
+                    <h3 class="subhome-title">异步合成</h3>
+                    <p class="subhome-desc">长文本专用，支持字幕时间戳，任务队列处理。</p>
+                    <div class="subhome-tags">
+                        <span class="subhome-tag">长文本</span>
+                        <span class="subhome-tag">≤10万字</span>
+                        <span class="subhome-tag">字幕</span>
+                    </div>
+                    <span class="subhome-link">进入 →</span>
+                </a>
+
+                <a href="clone.html" class="subhome-card">
+                    <div class="subhome-icon">🎭</div>
+                    <h3 class="subhome-title">音色复刻</h3>
+                    <p class="subhome-desc">上传音频样本，克隆专属音色，复刻自己的声音。</p>
+                    <div class="subhome-tags">
+                        <span class="subhome-tag">自定义音色</span>
+                        <span class="subhome-tag">声音克隆</span>
+                    </div>
+                    <span class="subhome-link">进入 →</span>
+                </a>
+            </div>
+
+            <!-- 音色库快链 -->
+            <div style="margin-top: 64px;">
+                <div class="page-header">
+                    <h2 class="page-title">音色库</h2>
+                    <p class="page-subtitle">点击进入音色选择，按语言快速找到需要的声音</p>
+                </div>
+
+                <div class="voice-preview">
+                    <a href="streaming.html?lang=中文（普通话）" class="voice-card">
+                        <div class="voice-flag">🇨🇳</div>
+                        <div class="voice-lang">中文（普通话）</div>
+                        <div class="voice-count">58 种音色</div>
+                    </a>
+                    <a href="streaming.html?lang=中文（粤语）" class="voice-card">
+                        <div class="voice-flag">🇭🇰</div>
+                        <div class="voice-lang">中文（粤语）</div>
+                        <div class="voice-count">6 种音色</div>
+                    </a>
+                    <a href="streaming.html?lang=英文" class="voice-card">
+                        <div class="voice-flag">🇺🇸</div>
+                        <div class="voice-lang">英文</div>
+                        <div class="voice-count">16 种音色</div>
+                    </a>
+                    <a href="streaming.html?lang=日文" class="voice-card">
+                        <div class="voice-flag">🇯🇵</div>
+                        <div class="voice-lang">日文</div>
+                        <div class="voice-count">14 种音色</div>
+                    </a>
+                    <a href="streaming.html?lang=韩文" class="voice-card">
+                        <div class="voice-flag">🇰🇷</div>
+                        <div class="voice-lang">韩文</div>
+                        <div class="voice-count">50 种音色</div>
+                    </a>
+                    <a href="streaming.html?lang=西班牙文" class="voice-card">
+                        <div class="voice-flag">🇪🇸</div>
+                        <div class="voice-lang">西班牙文</div>
+                        <div class="voice-count">47 种音色</div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p class="footer-copy"><a href="../" style="color: var(--text-muted);">← 返回 MiniMax Studio 主页</a></p>
+        </div>
+    </footer>
+
+    <!-- API Key Modal -->
+    <div id="apiKeyModal" class="modal-overlay hidden">
+        <div class="modal">
+            <h3 class="modal-title">设置 API Key</h3>
+            <div class="form-group">
+                <label class="form-label">MiniMax API Key</label>
+                <input type="password" id="apiKeyInput" class="form-input" placeholder="输入你的 API Key">
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="hideApiKeyModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveApiKey()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script>
+        const API_KEY_STORAGE = 'minimax_tts_api_key';
+        function getApiKey() { return localStorage.getItem(API_KEY_STORAGE) || ''; }
+        function setApiKey(key) { localStorage.setItem(API_KEY_STORAGE, key); updateApiKeyDisplay(); }
+        function updateApiKeyDisplay() {
+            const key = getApiKey();
+            const display = document.getElementById('apiKeyDisplay');
+            if (key) { display.textContent = '****' + key.slice(-6); display.classList.add('set'); }
+            else { display.textContent = '未设置 API Key'; display.classList.remove('set'); }
+        }
+        function showApiKeyModal() {
+            document.getElementById('apiKeyInput').value = getApiKey();
+            document.getElementById('apiKeyModal').classList.remove('hidden');
+        }
+        function hideApiKeyModal() { document.getElementById('apiKeyModal').classList.add('hidden'); }
+        function saveApiKey() {
+            const key = document.getElementById('apiKeyInput').value.trim();
+            if (key) { setApiKey(key); hideApiKeyModal(); showToast('API Key 保存成功', 'success'); }
+            else { showToast('请输入有效的 API Key', 'error'); }
+        }
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast toast-' + type;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+        document.addEventListener('DOMContentLoaded', updateApiKeyDisplay);
+    </script>
+</body>
+</html>
