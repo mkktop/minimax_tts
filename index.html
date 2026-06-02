@@ -29,53 +29,70 @@
         </div>
     </header>
 
-    <!-- Hero Section -->
+    <!-- Hero Section - 全屏背景轮播 -->
     <section class="hero">
-        <div class="container hero-content">
-            <h1 class="hero-title">MiniMax TTS<br>语音合成工具</h1>
-            <p class="hero-subtitle">
-                基于 MiniMax 语音 API 的 Web 工具，支持同步/异步合成和音色复刻。
-            </p>
-
-            <!-- Hero Image Carousel -->
-            <div class="hero-image carousel">
-                <div class="carousel-track">
-                    <img src="images/hero-bg.jpg" alt="MiniMax TTS" class="carousel-slide active" onerror="this.style.display='none'" />
-                    <img src="images/hero-bg-1.jpg" alt="" class="carousel-slide" onerror="this.style.display='none'" />
-                    <img src="images/hero-bg-2.jpg" alt="" class="carousel-slide" onerror="this.style.display='none'" />
-                    <img src="images/hero-bg-3.jpg" alt="" class="carousel-slide" onerror="this.style.display='none'" />
-                    <img src="images/hero-bg-4.jpg" alt="" class="carousel-slide" onerror="this.style.display='none'" />
-                    <img src="images/hero-bg-5.jpg" alt="" class="carousel-slide" onerror="this.style.display='none'" />
-                </div>
-                <div class="carousel-dots">
-                    <span class="carousel-dot active" data-index="0"></span>
-                    <span class="carousel-dot" data-index="1"></span>
-                    <span class="carousel-dot" data-index="2"></span>
-                    <span class="carousel-dot" data-index="3"></span>
-                    <span class="carousel-dot" data-index="4"></span>
-                    <span class="carousel-dot" data-index="5"></span>
-                </div>
+        <!-- 背景图轮播 -->
+        <div class="hero-bg-carousel">
+            <div class="carousel-track">
+                <div class="carousel-slide active" style="background-image: url('images/hero-bg.jpg');"></div>
+                <div class="carousel-slide" style="background-image: url('images/hero-bg-1.jpg');"></div>
+                <div class="carousel-slide" style="background-image: url('images/hero-bg-2.jpg');"></div>
+                <div class="carousel-slide" style="background-image: url('images/hero-bg-3.jpg');"></div>
+                <div class="carousel-slide" style="background-image: url('images/hero-bg-4.jpg');"></div>
+                <div class="carousel-slide" style="background-image: url('images/hero-bg-5.jpg');"></div>
             </div>
+            <div class="hero-overlay"></div>
+        </div>
+
+        <!-- 轮播控制点 -->
+        <div class="carousel-dots">
+            <span class="carousel-dot active" data-index="0"></span>
+            <span class="carousel-dot" data-index="1"></span>
+            <span class="carousel-dot" data-index="2"></span>
+            <span class="carousel-dot" data-index="3"></span>
+            <span class="carousel-dot" data-index="4"></span>
+            <span class="carousel-dot" data-index="5"></span>
+        </div>
+
+        <!-- 文字内容叠加在背景上 -->
+        <div class="container hero-content">
+            <div class="hero-badge">
+                <span class="hero-badge-dot"></span>
+                <span>基于 MiniMax 语音 API</span>
+            </div>
+            <h1 class="hero-title">让文字<br>开口说话</h1>
+            <p class="hero-subtitle">
+                同步流式 / HTTP / 异步 / 音色复刻 — 一个工具，覆盖所有 TTS 场景。
+            </p>
 
             <!-- Stats -->
             <div class="stats">
                 <div class="stat-item">
-                    <div class="stat-value">327+</div>
+                    <div class="stat-value">327<span class="stat-unit">+</span></div>
                     <div class="stat-label">预设音色</div>
                 </div>
+                <div class="stat-divider"></div>
                 <div class="stat-item">
-                    <div class="stat-value">40+</div>
+                    <div class="stat-value">24<span class="stat-unit">种</span></div>
                     <div class="stat-label">支持语言</div>
                 </div>
+                <div class="stat-divider"></div>
                 <div class="stat-item">
-                    <div class="stat-value">6</div>
+                    <div class="stat-value">6<span class="stat-unit">款</span></div>
                     <div class="stat-label">合成模型</div>
                 </div>
+                <div class="stat-divider"></div>
                 <div class="stat-item">
-                    <div class="stat-value">10万</div>
+                    <div class="stat-value">10<span class="stat-unit">万</span></div>
                     <div class="stat-label">最大字符数</div>
                 </div>
             </div>
+        </div>
+
+        <!-- 向下滚动提示 -->
+        <div class="scroll-hint">
+            <span>向下滚动</span>
+            <div class="scroll-arrow"></div>
         </div>
     </section>
 
@@ -287,10 +304,10 @@
             hero.style.background = `radial-gradient(circle at ${x * 100}% ${y * 100}%, rgba(79, 70, 229, 0.15) 0%, transparent 50%)`;
         });
 
-        // ============ Hero 背景图轮播 ============
+        // ============ Hero 全屏背景图轮播 ============
         (function initCarousel() {
-            const slides = document.querySelectorAll('.carousel-slide');
-            const dots = document.querySelectorAll('.carousel-dot');
+            const slides = document.querySelectorAll('.hero-bg-carousel .carousel-slide');
+            const dots = document.querySelectorAll('.carousel-dots .carousel-dot');
             if (slides.length === 0) return;
 
             let currentIndex = 0;
@@ -326,10 +343,10 @@
             });
 
             // 鼠标悬停暂停
-            const carousel = document.querySelector('.hero-image.carousel');
-            if (carousel) {
-                carousel.addEventListener('mouseenter', () => isPaused = true);
-                carousel.addEventListener('mouseleave', () => isPaused = false);
+            const hero = document.querySelector('.hero');
+            if (hero) {
+                hero.addEventListener('mouseenter', () => isPaused = true);
+                hero.addEventListener('mouseleave', () => isPaused = false);
             }
 
             // 键盘左右键控制
