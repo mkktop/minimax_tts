@@ -1,6 +1,7 @@
 /**
  * 音色复刻 - JavaScript
  * 上传音频样本，克隆你的专属音色
+ * API: POST /v1/voice_clone
  */
 
 // 状态变量
@@ -10,11 +11,50 @@ let cloneAudioFileId = null;
 let promptAudioFileId = null;
 let customVoices = [];
 
+// ============ 设置持久化 ============
+const SETTINGS_KEY = 'minimax_tts_clone_settings';
+
+function saveSettings() {
+    const settings = {
+        voiceId: document.getElementById('voiceIdInput').value,
+        testText: document.getElementById('testTextInput').value,
+        model: document.getElementById('modelSelect').value,
+        languageBoost: document.getElementById('languageBoostSelect').value,
+        needNoiseReduction: document.getElementById('needNoiseReduction').checked,
+        needVolumeNormalization: document.getElementById('needVolumeNormalization').checked,
+        aigcWatermark: document.getElementById('aigcWatermark').checked
+    };
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+function loadSettings() {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return;
+    try {
+        const s = JSON.parse(raw);
+        if (s.voiceId) document.getElementById('voiceIdInput').value = s.voiceId;
+        if (s.testText) document.getElementById('testTextInput').value = s.testText;
+        if (s.model) document.getElementById('modelSelect').value = s.model;
+        if (s.languageBoost != null) document.getElementById('languageBoostSelect').value = s.languageBoost;
+        if (s.needNoiseReduction) document.getElementById('needNoiseReduction').checked = true;
+        if (s.needVolumeNormalization) document.getElementById('needVolumeNormalization').checked = true;
+        if (s.aigcWatermark) document.getElementById('aigcWatermark').checked = true;
+    } catch (e) { /* ignore */ }
+}
+
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
     initApiKey();
     initDragDrop();
     loadCustomVoices();
+    loadSettings();
+    // 监听变化自动保存
+    ['voiceIdInput','testTextInput','modelSelect','languageBoostSelect',
+     'needNoiseReduction','needVolumeNormalization','aigcWatermark'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', saveSettings);
+        if (el) el.addEventListener('input', () => { clearTimeout(el._saveTimer); el._saveTimer = setTimeout(saveSettings, 500); });
+    });
 });
 
 function initApiKey() {
@@ -163,7 +203,6 @@ function validateAudioDuration(file, minSeconds, maxSeconds, callback) {
         const duration = audio.duration;
 
         if (isNaN(duration) || duration <= 0) {
-            // 无法获取时长，跳过校验，允许通过
             callback(true, null);
             return;
         }
@@ -185,7 +224,6 @@ function validateAudioDuration(file, minSeconds, maxSeconds, callback) {
 
     audio.onerror = function() {
         URL.revokeObjectURL(url);
-        // 无法解析，允许通过（交给后端校验）
         callback(true, null);
     };
 
@@ -212,6 +250,35 @@ function formatFileSize(bytes) {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
+// 校验 voice_id 格式
+function validateVoiceId(voiceId) {
+    if (!voiceId) {
+        showToast('请输入自定义音色 ID', 'error');
+        return false;
+    }
+    // 长度 8-256
+    if (voiceId.length < 8 || voiceId.length > 256) {
+        showToast('音色 ID 长度需在 8-256 个字符之间', 'error');
+        return false;
+    }
+    // 首字符必须为英文字母
+    if (!/^[a-zA-Z]/.test(voiceId)) {
+        showToast('音色 ID 首字符必须为英文字母', 'error');
+        return false;
+    }
+    // 只允许字母、数字、-、_
+    if (!/^[a-zA-Z0-9_-]+$/.test(voiceId)) {
+        showToast('音色 ID 只能包含字母、数字、- 和 _', 'error');
+        return false;
+    }
+    // 末位不能是 - 或 _
+    if ([-1, '_'].includes(voiceId[voiceId.length - 1]) || voiceId.endsWith('-') || voiceId.endsWith('_')) {
+        showToast('音色 ID 末位不能是 - 或 _', 'error');
+        return false;
+    }
+    return true;
+}
+
 // 开始复刻
 async function startClone() {
     const apiKey = getApiKey();
@@ -226,19 +293,14 @@ async function startClone() {
     }
 
     const voiceId = document.getElementById('voiceIdInput').value.trim();
-    if (!voiceId) {
-        showToast('请输入自定义音色 ID', 'error');
-        return;
-    }
-
-    // 验证 voice_id 格式（只能包含字母、数字、下划线）
-    if (!/^[a-zA-Z0-9_]+$/.test(voiceId)) {
-        showToast('音色 ID 只能包含字母、数字和下划线', 'error');
-        return;
-    }
+    if (!validateVoiceId(voiceId)) return;
 
     const testText = document.getElementById('testTextInput').value.trim() || '您好，这是您的专属音色试听。';
     const model = document.getElementById('modelSelect').value;
+    const languageBoost = document.getElementById('languageBoostSelect').value;
+    const needNoiseReduction = document.getElementById('needNoiseReduction').checked;
+    const needVolumeNormalization = document.getElementById('needVolumeNormalization').checked;
+    const aigcWatermark = document.getElementById('aigcWatermark').checked;
 
     // 显示进度
     const cloneResult = document.getElementById('cloneResult');
@@ -260,16 +322,14 @@ async function startClone() {
 
         const cloneResponse = await fetch('/api/clone/upload', {
             method: 'POST',
-            headers: {
-                'x-api-key': apiKey
-            },
+            headers: { 'x-api-key': apiKey },
             body: cloneFormData
         });
 
         const cloneResult1 = await cloneResponse.json();
 
         if (!cloneResponse.ok || !cloneResult1.success) {
-            throw new Error(cloneResult1.error?.message || '克隆音频上传失败');
+            throw new Error(cloneResult1.error?.message || cloneResult1.error || '克隆音频上传失败');
         }
 
         cloneAudioFileId = cloneResult1.file_id;
@@ -287,9 +347,7 @@ async function startClone() {
 
             const promptResponse = await fetch('/api/clone/prompt', {
                 method: 'POST',
-                headers: {
-                    'x-api-key': apiKey
-                },
+                headers: { 'x-api-key': apiKey },
                 body: promptFormData
             });
 
@@ -305,14 +363,14 @@ async function startClone() {
             updateStep(2, 'success', '跳过（未上传）');
         }
 
-        // 步骤 3: 执行音色克隆
+        // 步骤 3: 执行音色克隆（含试听）
         updateStep(3, 'processing', '克隆中...');
 
         const clonePayload = {
             file_id: cloneAudioFileId,
             voice_id: voiceId,
-            model: model,
-            text: testText
+            text: testText,
+            model: model
         };
 
         if (promptAudioFileId) {
@@ -321,6 +379,11 @@ async function startClone() {
                 prompt_text: testText
             };
         }
+
+        if (languageBoost) clonePayload.language_boost = languageBoost;
+        if (needNoiseReduction) clonePayload.need_noise_reduction = true;
+        if (needVolumeNormalization) clonePayload.need_volume_normalization = true;
+        if (aigcWatermark) clonePayload.aigc_watermark = true;
 
         const executeResponse = await fetch('/api/clone/execute', {
             method: 'POST',
@@ -334,57 +397,32 @@ async function startClone() {
         const executeResult = await executeResponse.json();
 
         if (!executeResponse.ok || !executeResult.success) {
-            throw new Error(executeResult.error?.message || '音色克隆失败');
+            throw new Error(executeResult.error?.message || executeResult.error || '音色克隆失败');
         }
 
         updateStep(3, 'success', '克隆完成');
 
-        // 步骤 4: 生成试听音频（使用刚克隆的音色合成测试文本）
-        updateStep(4, 'processing', '生成试听中...');
+        // 步骤 4: 播放试听音频（使用 clone API 返回的 demo_audio URL）
+        updateStep(4, 'processing', '加载试听...');
 
-        const synthResponse = await fetch('/api/tts/http', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey
-            },
-            body: JSON.stringify({
-                model: model,
-                text: testText,
-                voice_setting: {
-                    voice_id: voiceId,
-                    speed: 1,
-                    pitch: 0,
-                    vol: 1
-                },
-                audio_setting: {
-                    sample_rate: 32000,
-                    bitrate: 128000,
-                    format: 'mp3',
-                    channel: 1
-                }
-            })
-        });
-
-        if (!synthResponse.ok) {
-            // 克隆成功但试听失败
-            updateStep(4, 'success', '克隆成功（试听生成失败）');
-            showCloneResult(voiceId, null);
-        } else {
-            const audioData = await synthResponse.arrayBuffer();
-            const audioBlob = new Blob([audioData], { type: 'audio/mpeg' });
-            const audioUrl = URL.createObjectURL(audioBlob);
-
+        const cloneData = executeResult.data;
+        if (cloneData?.demo_audio) {
             const audioElement = document.getElementById('audioElement');
-            audioElement.src = audioUrl;
+            audioElement.src = cloneData.demo_audio;
+            updateStep(4, 'success', '试听已就绪');
+            showCloneResult(voiceId, cloneData.demo_audio);
+        } else {
+            updateStep(4, 'success', '克隆成功（无试听）');
+            showCloneResult(voiceId, null);
+        }
 
-            updateStep(4, 'success', '试听生成完成');
-            showCloneResult(voiceId, audioBlob);
+        // 风控提示
+        if (cloneData?.input_sensitive && cloneData.input_sensitive !== false) {
+            showToast('⚠️ 输入音频命中风控，请检查内容', 'error');
         }
 
         // 添加到自定义音色列表
         addCustomVoice(voiceId, model);
-
         showToast('音色复刻成功！', 'success');
 
     } catch (error) {
@@ -396,7 +434,6 @@ async function startClone() {
             const step = document.getElementById('step' + i);
             if (step && !step.querySelector('.status-icon.success')) {
                 const icon = step.querySelector('.status-icon');
-                const detail = step.querySelector('.status-detail');
                 if (icon && !icon.classList.contains('success')) {
                     icon.className = 'status-icon error';
                     icon.textContent = '❌';
@@ -429,17 +466,13 @@ function updateStep(stepNum, status, detail) {
     if (detailEl) detailEl.textContent = detail;
 }
 
-function showCloneResult(voiceId, audioBlob) {
+function showCloneResult(voiceId, demoAudioUrl) {
     const cloneResult = document.getElementById('cloneResult');
     const resultVoiceId = document.getElementById('resultVoiceId');
 
     resultVoiceId.textContent = voiceId;
-
-    // 保存音频blob供下载和试听使用
-    cloneResult.dataset.audioBlob = audioBlob ? 'true' : 'false';
-    if (audioBlob) {
-        cloneResult.dataset.voiceId = voiceId;
-    }
+    cloneResult.dataset.voiceId = voiceId;
+    cloneResult.dataset.demoAudio = demoAudioUrl || '';
 
     cloneResult.classList.remove('hidden');
 }
@@ -454,29 +487,37 @@ function playPreview() {
 }
 
 function downloadCloneAudio() {
-    const audioElement = document.getElementById('audioElement');
-    if (!audioElement.src) {
-        showToast('没有可下载的音频', 'error');
-        return;
-    }
+    const cloneResult = document.getElementById('cloneResult');
+    const demoAudioUrl = cloneResult.dataset.demoAudio;
 
-    // 从 audio 元素获取音频数据
-    const audioUrl = audioElement.src;
-    const a = document.createElement('a');
-    a.href = audioUrl;
-    a.download = `cloned_voice_${Date.now()}.mp3`;
-    a.click();
+    if (!demoAudioUrl) {
+        // 没有 URL，从 audio 元素下载
+        const audioElement = document.getElementById('audioElement');
+        if (!audioElement.src) {
+            showToast('没有可下载的音频', 'error');
+            return;
+        }
+        const a = document.createElement('a');
+        a.href = audioElement.src;
+        a.download = `cloned_voice_${Date.now()}.mp3`;
+        a.click();
+    } else {
+        // 从 demo_audio URL 下载
+        const a = document.createElement('a');
+        a.href = demoAudioUrl;
+        a.download = `cloned_voice_${Date.now()}.mp3`;
+        a.target = '_blank';
+        a.click();
+    }
 
     showToast('开始下载', 'success');
 }
 
 function useCloneVoice() {
-    // 跳转到同步合成页面，使用刚复刻的音色
     const cloneResult = document.getElementById('cloneResult');
     const voiceId = cloneResult.dataset.voiceId;
 
     if (voiceId) {
-        // 保存到 localStorage 供其他页面使用
         localStorage.setItem('selected_voice_id', voiceId);
         window.location.href = 'streaming.html';
     } else {
@@ -502,7 +543,6 @@ function saveCustomVoices() {
 }
 
 function addCustomVoice(voiceId, model) {
-    // 检查是否已存在
     const existing = customVoices.find(v => v.voice_id === voiceId);
     if (existing) return;
 

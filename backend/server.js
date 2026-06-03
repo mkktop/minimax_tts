@@ -853,7 +853,7 @@ app.post('/api/clone/prompt', validateApiKey, uploadMiddleware, async (req, res)
 // 音色复刻 - 执行克隆
 app.post('/api/clone/execute', validateApiKey, async (req, res) => {
     try {
-        const { file_id, voice_id, clone_prompt, text, model } = req.body;
+        const { file_id, voice_id, clone_prompt, text, model, language_boost, need_noise_reduction, need_volume_normalization, aigc_watermark } = req.body;
 
         const payload = {
             file_id,
@@ -865,6 +865,11 @@ app.post('/api/clone/execute', validateApiKey, async (req, res) => {
         if (clone_prompt) {
             payload.clone_prompt = clone_prompt;
         }
+
+        if (language_boost) payload.language_boost = language_boost;
+        if (need_noise_reduction) payload.need_noise_reduction = true;
+        if (need_volume_normalization) payload.need_volume_normalization = true;
+        if (aigc_watermark) payload.aigc_watermark = true;
 
         const response = await axios.post(`${MINIMAX_API_BASE}/v1/voice_clone`, payload, {
             headers: {

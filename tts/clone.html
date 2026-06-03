@@ -81,13 +81,13 @@
                             <div class="settings-group-title">🎭 音色设置</div>
                             <div class="form-group">
                                 <label class="form-label">自定义音色 ID</label>
-                                <input type="text" id="voiceIdInput" class="form-input" placeholder="例如: my_custom_voice">
-                                <div class="upload-hint" style="margin-top: 4px;">用于后续语音合成的音色标识符</div>
+                                <input type="text" id="voiceIdInput" class="form-input" placeholder="例如: MiniMax001">
+                                <div class="upload-hint" style="margin-top: 4px;">8-256字符，首字母，允许字母/数字/-/_，末位不能是 - 或 _</div>
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label">测试文本</label>
-                                <textarea id="testTextInput" class="form-input" style="min-height: 80px;" placeholder="输入测试文本，用于试听克隆效果...">您好，这是您的专属音色试听。</textarea>
+                                <label class="form-label">试听文本</label>
+                                <textarea id="testTextInput" class="form-input" style="min-height: 80px;" placeholder="输入试听文本，克隆完成后自动朗读...">您好，这是您的专属音色试听。</textarea>
                             </div>
 
                             <div class="form-group">
@@ -97,8 +97,46 @@
                                     <option value="speech-2.8-turbo">speech-2.8-turbo</option>
                                     <option value="speech-2.6-hd">speech-2.6-hd</option>
                                     <option value="speech-2.6-turbo">speech-2.6-turbo</option>
+                                    <option value="speech-02-hd">speech-02-hd</option>
+                                    <option value="speech-02-turbo">speech-02-turbo</option>
+                                    <option value="speech-01-hd">speech-01-hd</option>
+                                    <option value="speech-01-turbo">speech-01-turbo</option>
                                 </select>
                             </div>
+
+                            <div class="form-group">
+                                <label class="form-label">语言增强（可选）</label>
+                                <select id="languageBoostSelect" class="form-input">
+                                    <option value="">关闭</option>
+                                    <option value="auto">自动检测</option>
+                                    <option value="Chinese">中文</option>
+                                    <option value="Chinese,Yue">粤语</option>
+                                    <option value="English">英语</option>
+                                    <option value="Japanese">日语</option>
+                                    <option value="Korean">韩语</option>
+                                    <option value="Spanish">西班牙语</option>
+                                    <option value="French">法语</option>
+                                    <option value="German">德语</option>
+                                    <option value="Russian">俄语</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 复刻高级选项 -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">🔧 高级选项</div>
+                            <label class="checkbox-wrapper">
+                                <input type="checkbox" id="needNoiseReduction">
+                                <span>开启降噪</span>
+                            </label>
+                            <label class="checkbox-wrapper" style="margin-top: 6px;">
+                                <input type="checkbox" id="needVolumeNormalization">
+                                <span>音量归一化</span>
+                            </label>
+                            <label class="checkbox-wrapper" style="margin-top: 6px;">
+                                <input type="checkbox" id="aigcWatermark">
+                                <span>试听音频添加 AIGC 水印</span>
+                            </label>
                         </div>
 
                         <!-- 我的音色 -->
