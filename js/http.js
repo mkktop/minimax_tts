@@ -55,6 +55,58 @@ let audioElement = null;
 let isPlaying = false;
 let audioBlob = null;
 
+// ============ 设置持久化 ============
+const SETTINGS_KEY = 'minimax_tts_http_settings';
+
+function saveSettings() {
+    const settings = {
+        model: document.querySelector('.model-option.selected')?.dataset.model || 'speech-2.8-hd',
+        speed: document.getElementById('speedSlider').value,
+        pitch: document.getElementById('pitchSlider').value,
+        vol: document.getElementById('volSlider').value,
+        sampleRate: document.getElementById('sampleRateSelect').value,
+        format: document.getElementById('formatSelect').value,
+        emotion: document.getElementById('emotionSelect').value,
+        languageBoost: document.getElementById('languageBoostSelect').value,
+        pronunciation: document.getElementById('pronunciationInput').value,
+        aigcWatermark: document.getElementById('aigcWatermark').checked,
+        text: document.getElementById('textInput').value
+    };
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+function loadSettings() {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return;
+    try {
+        const s = JSON.parse(raw);
+        // 模型
+        if (s.model) {
+            const opt = document.querySelector(`.model-option[data-model="${s.model}"]`);
+            if (opt) {
+                document.querySelectorAll('.model-option').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+            }
+        }
+        // 滑块
+        if (s.speed != null) { document.getElementById('speedSlider').value = s.speed; document.getElementById('speedValue').textContent = s.speed + 'x'; }
+        if (s.pitch != null) { document.getElementById('pitchSlider').value = s.pitch; document.getElementById('pitchValue').textContent = s.pitch; }
+        if (s.vol != null) { document.getElementById('volSlider').value = s.vol; document.getElementById('volValue').textContent = s.vol; }
+        // 下拉
+        if (s.sampleRate) document.getElementById('sampleRateSelect').value = s.sampleRate;
+        if (s.format) document.getElementById('formatSelect').value = s.format;
+        if (s.emotion) document.getElementById('emotionSelect').value = s.emotion;
+        if (s.languageBoost != null) document.getElementById('languageBoostSelect').value = s.languageBoost;
+        if (s.pronunciation) document.getElementById('pronunciationInput').value = s.pronunciation;
+        if (s.aigcWatermark) document.getElementById('aigcWatermark').checked = true;
+        // 文本
+        if (s.text) {
+            document.getElementById('textInput').value = s.text;
+            document.getElementById('textInput').dispatchEvent(new Event('input'));
+        }
+    } catch (e) { /* ignore */ }
+}
+
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
     initApiKey();
@@ -63,6 +115,15 @@ document.addEventListener('DOMContentLoaded', function() {
     initSliders();
     initTextInput();
     initAudioPlayer();
+    // 恢复设置
+    loadSettings();
+    // 监听变化自动保存
+    ['speedSlider','pitchSlider','volSlider','sampleRateSelect','formatSelect',
+     'emotionSelect','languageBoostSelect','pronunciationInput','aigcWatermark','textInput'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', saveSettings);
+        if (el) el.addEventListener('input', () => { clearTimeout(el._saveTimer); el._saveTimer = setTimeout(saveSettings, 500); });
+    });
 });
 
 function initApiKey() {
@@ -119,6 +180,7 @@ function initModelSelection() {
         opt.addEventListener('click', function() {
             options.forEach(o => o.classList.remove('selected'));
             this.classList.add('selected');
+            saveSettings();
         });
     });
 }

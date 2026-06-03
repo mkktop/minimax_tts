@@ -60,6 +60,77 @@ let audioChunks = []; // 收集 hex 音频片段
 let subtitleEntries = []; // 字幕条目
 let startTime = 0;
 
+// ============ 设置持久化 ============
+const SETTINGS_KEY = 'minimax_tts_streaming_settings';
+
+function saveSettings() {
+    const settings = {
+        model: document.querySelector('.model-option.selected')?.dataset.model || 'speech-2.8-hd',
+        speed: document.getElementById('speedSlider').value,
+        pitch: document.getElementById('pitchSlider').value,
+        vol: document.getElementById('volSlider').value,
+        sampleRate: document.getElementById('sampleRateSelect').value,
+        bitrate: document.getElementById('bitrateSelect').value,
+        format: document.getElementById('formatSelect').value,
+        channel: document.getElementById('channelSelect').value,
+        emotion: document.getElementById('emotionSelect').value,
+        languageBoost: document.getElementById('languageBoostSelect').value,
+        englishNormalization: document.getElementById('englishNormalization').checked,
+        latexRead: document.getElementById('latexRead').checked,
+        pronunciation: document.getElementById('pronunciationInput').value,
+        modifyPitch: document.getElementById('modifyPitchSlider').value,
+        modifyIntensity: document.getElementById('modifyIntensitySlider').value,
+        modifyTimbre: document.getElementById('modifyTimbreSlider').value,
+        soundEffects: document.getElementById('soundEffectsSelect').value,
+        subtitleEnable: document.getElementById('subtitleEnable').checked,
+        subtitleType: document.getElementById('subtitleTypeSelect').value,
+        continuousSound: document.getElementById('continuousSound').checked,
+        text: document.getElementById('textInput').value
+    };
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+function loadSettings() {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return;
+    try {
+        const s = JSON.parse(raw);
+        if (s.model) {
+            const opt = document.querySelector(`.model-option[data-model="${s.model}"]`);
+            if (opt) {
+                document.querySelectorAll('.model-option').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+            }
+        }
+        if (s.speed != null) { document.getElementById('speedSlider').value = s.speed; document.getElementById('speedValue').textContent = s.speed + 'x'; }
+        if (s.pitch != null) { document.getElementById('pitchSlider').value = s.pitch; document.getElementById('pitchValue').textContent = s.pitch; }
+        if (s.vol != null) { document.getElementById('volSlider').value = s.vol; document.getElementById('volValue').textContent = s.vol; }
+        if (s.sampleRate) document.getElementById('sampleRateSelect').value = s.sampleRate;
+        if (s.bitrate) document.getElementById('bitrateSelect').value = s.bitrate;
+        if (s.format) document.getElementById('formatSelect').value = s.format;
+        if (s.channel) document.getElementById('channelSelect').value = s.channel;
+        if (s.emotion != null) document.getElementById('emotionSelect').value = s.emotion;
+        if (s.languageBoost != null) document.getElementById('languageBoostSelect').value = s.languageBoost;
+        if (s.englishNormalization) document.getElementById('englishNormalization').checked = true;
+        if (s.latexRead) document.getElementById('latexRead').checked = true;
+        if (s.pronunciation) document.getElementById('pronunciationInput').value = s.pronunciation;
+        if (s.modifyPitch != null) { document.getElementById('modifyPitchSlider').value = s.modifyPitch; document.getElementById('modifyPitchValue').textContent = s.modifyPitch; }
+        if (s.modifyIntensity != null) { document.getElementById('modifyIntensitySlider').value = s.modifyIntensity; document.getElementById('modifyIntensityValue').textContent = s.modifyIntensity; }
+        if (s.modifyTimbre != null) { document.getElementById('modifyTimbreSlider').value = s.modifyTimbre; document.getElementById('modifyTimbreValue').textContent = s.modifyTimbre; }
+        if (s.soundEffects != null) document.getElementById('soundEffectsSelect').value = s.soundEffects;
+        if (s.subtitleEnable) {
+            document.getElementById('subtitleEnable').checked = true;
+            document.getElementById('subtitleTypeGroup').style.display = 'block';
+        }
+        if (s.subtitleType) document.getElementById('subtitleTypeSelect').value = s.subtitleType;
+        if (s.continuousSound) document.getElementById('continuousSound').checked = true;
+        if (s.text) {
+            document.getElementById('textInput').value = s.text;
+            document.getElementById('textInput').dispatchEvent(new Event('input'));
+        }
+    } catch (e) { /* ignore */ }
+}
+
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
     initApiKey();
@@ -70,6 +141,18 @@ document.addEventListener('DOMContentLoaded', function() {
     initAudioPlayer();
     initSubtitleToggle();
     initVoiceModifySliders();
+    // 恢复设置
+    loadSettings();
+    // 监听变化自动保存
+    ['speedSlider','pitchSlider','volSlider','sampleRateSelect','bitrateSelect',
+     'formatSelect','channelSelect','emotionSelect','languageBoostSelect',
+     'englishNormalization','latexRead','pronunciationInput',
+     'modifyPitchSlider','modifyIntensitySlider','modifyTimbreSlider','soundEffectsSelect',
+     'subtitleEnable','subtitleTypeSelect','continuousSound','textInput'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', saveSettings);
+        if (el) el.addEventListener('input', () => { clearTimeout(el._saveTimer); el._saveTimer = setTimeout(saveSettings, 500); });
+    });
 });
 
 function initApiKey() {
@@ -126,6 +209,7 @@ function initModelSelection() {
         opt.addEventListener('click', function() {
             options.forEach(o => o.classList.remove('selected'));
             this.classList.add('selected');
+            saveSettings();
         });
     });
 }
