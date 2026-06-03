@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音色设计 - MiniMax TTS</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/home.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container header-inner">
+            <a href="../" class="logo">
+                <div class="logo-icon">🎙️</div>
+                <span>MiniMax TTS</span>
+            </a>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">首页</a>
+                <a href="streaming.html" class="nav-link">同步合成</a>
+                <a href="http.html" class="nav-link">HTTP合成</a>
+                <a href="async.html" class="nav-link">异步合成</a>
+                <a href="clone.html" class="nav-link">音色复刻</a>
+                <a href="voice-design.html" class="nav-link active">音色设计</a>
+                <a href="../image/generate.html" class="nav-link">文生图</a>
+            </nav>
+            <div class="header-actions">
+                <div class="api-key-section">
+                    <span id="apiKeyDisplay" class="api-key-display">未设置 API Key</span>
+                    <button class="btn btn-secondary btn-sm" onclick="showApiKeyModal()">设置</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="page">
+        <div class="container">
+            <div class="page-header">
+                <h1 class="page-title">🎨 音色设计</h1>
+                <p class="page-subtitle">用文字描述你想要的音色，AI 为你生成专属声音。无需上传音频，一句话定义音色。</p>
+            </div>
+
+            <div class="work-area">
+                <div class="work-layout">
+                    <!-- Settings Panel -->
+                    <div class="settings-panel">
+                        <!-- 音色描述 -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">✍️ 音色描述</div>
+                            <div class="form-group">
+                                <label class="form-label">描述你想要的音色</label>
+                                <textarea id="promptInput" class="form-input" style="min-height: 120px; resize: vertical;" placeholder="例如：讲述悬疑故事的播音员，声音低沉富有磁性，语速时快时慢，营造紧张神秘的氛围。&#10;&#10;或者：温柔的年轻女声，像电台DJ一样娓娓道来，适合朗读散文和诗歌。"></textarea>
+                            </div>
+
+                            <!-- 快捷模板 -->
+                            <div class="form-group">
+                                <label class="form-label">快捷模板</label>
+                                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                    <button class="btn btn-secondary btn-sm" onclick="applyTemplate('suspense')">🎭 悬疑播音</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="applyTemplate('warm')">📻 温暖电台</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="applyTemplate('narrator')">📖 有声书</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="applyTemplate('news')">📺 新闻播报</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="applyTemplate('child')">👶 儿童故事</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="applyTemplate('commercial')">📢 广告配音</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 试听设置 -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">🎤 试听设置</div>
+                            <div class="form-group">
+                                <label class="form-label">试听文本 <span class="text-muted" style="font-size: 0.75rem; font-weight: normal;" id="previewCount">(0 / 500)</span></label>
+                                <textarea id="previewTextInput" class="form-input" style="min-height: 80px; resize: vertical;" placeholder="输入试听文本，将用设计的音色朗读这段话..."></textarea>
+                                <div class="upload-hint" style="margin-top: 4px;">试听按 2 元/万字符计费</div>
+                            </div>
+                        </div>
+
+                        <!-- 高级选项 -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">⚙️ 高级选项</div>
+                            <div class="form-group">
+                                <label class="form-label">自定义音色 ID（可选）</label>
+                                <input type="text" id="voiceIdInput" class="form-input" placeholder="留空则自动生成">
+                                <div class="upload-hint" style="margin-top: 4px;">不填时系统自动生成唯一 ID</div>
+                            </div>
+                            <label class="checkbox-wrapper">
+                                <input type="checkbox" id="aigcWatermark">
+                                <span>试听音频添加 AIGC 水印</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Output Panel -->
+                    <div class="output-panel">
+                        <div style="text-align: center; margin-bottom: 16px;">
+                            <button id="designBtn" class="btn btn-primary" style="padding: 12px 48px; font-size: 1rem;" onclick="startDesign()">
+                                🎨 开始设计
+                            </button>
+                        </div>
+
+                        <!-- Status -->
+                        <div id="statusSection" class="hidden" style="margin-top: 24px;">
+                            <div class="status-bar">
+                                <div id="statusIcon" class="status-icon pending">⏳</div>
+                                <div class="status-info">
+                                    <div id="statusText" class="status-text">准备就绪</div>
+                                    <div id="statusDetail" class="status-detail"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Result -->
+                        <div id="resultSection" class="hidden" style="margin-top: 24px;">
+                            <div class="card">
+                                <h4 style="margin-bottom: 16px;">🎉 音色设计完成</h4>
+                                <div style="margin-bottom: 16px;">
+                                    <span class="text-muted" style="font-size: 0.875rem;">生成的音色 ID：</span>
+                                    <code id="resultVoiceId" style="background: var(--bg-card); padding: 4px 12px; border-radius: 4px; font-size: 0.9rem;"></code>
+                                </div>
+                                <div id="audioPlayer" class="audio-player" style="margin-bottom: 16px;">
+                                    <div class="audio-controls">
+                                        <button class="audio-play-btn" onclick="togglePlay()">▶</button>
+                                        <div class="audio-progress" onclick="seekAudio(event)">
+                                            <div id="audioProgressFill" class="audio-progress-fill" style="width: 0%"></div>
+                                        </div>
+                                        <span id="audioTime" class="audio-time">00:00 / 00:00</span>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                    <button class="btn btn-secondary" onclick="downloadAudio()">⬇ 下载试听</button>
+                                    <button class="btn btn-primary" onclick="useVoice()">✨ 使用该音色合成</button>
+                                    <button class="btn btn-secondary" onclick="redesign()">🔄 重新设计</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- API Key Modal -->
+    <div id="apiKeyModal" class="modal-overlay hidden">
+        <div class="modal">
+            <h3 class="modal-title">设置 API Key</h3>
+            <div class="form-group">
+                <label class="form-label">MiniMax API Key</label>
+                <input type="password" id="apiKeyInput" class="form-input" placeholder="输入你的 API Key">
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="hideApiKeyModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveApiKey()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- Audio Element -->
+    <audio id="audioElement" style="display: none;"></audio>
+
+    <script src="../js/custom-select.js"></script>
+    <script src="../js/voice-design.js"></script>
+</body>
+</html>

@@ -891,6 +891,43 @@ app.post('/api/clone/execute', validateApiKey, async (req, res) => {
     }
 });
 
+// ============ 音色设计 ============
+app.post('/api/voice/design', validateApiKey, async (req, res) => {
+    try {
+        const { prompt, preview_text, voice_id, aigc_watermark } = req.body;
+
+        if (!prompt || !preview_text) {
+            return res.status(400).json({ error: 'prompt and preview_text are required' });
+        }
+
+        const payload = {
+            prompt,
+            preview_text
+        };
+
+        if (voice_id) payload.voice_id = voice_id;
+        if (aigc_watermark) payload.aigc_watermark = true;
+
+        const response = await axios.post(`${MINIMAX_API_BASE}/v1/voice_design`, payload, {
+            headers: {
+                'Authorization': `Bearer ${req.apiKey}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        res.json({
+            success: true,
+            data: response.data
+        });
+    } catch (error) {
+        console.error('Voice Design Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.response?.data?.base_resp?.status_msg || error.response?.data?.message || error.message
+        });
+    }
+});
+
 // 图片生成
 app.post('/api/image/generate', validateApiKey, async (req, res) => {
     try {
