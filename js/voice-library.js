@@ -414,10 +414,34 @@ function initVoiceSelector() {
             const item = document.createElement('div');
             item.className = 'voice-item' + (voice.id === currentSelectedVoiceId ? ' selected' : '');
             item.dataset.voiceId = voice.id;
-            item.innerHTML = `
+            item.style.display = 'flex';
+            item.style.justifyContent = 'space-between';
+            item.style.alignItems = 'center';
+
+            const infoDiv = document.createElement('div');
+            infoDiv.style.flex = '1';
+            infoDiv.style.minWidth = '0';
+            infoDiv.innerHTML = `
                 <div class="voice-name">${voice.name}</div>
                 <div class="voice-id">${voice.id}</div>
             `;
+
+            item.appendChild(infoDiv);
+
+            // 远程音色（复刻/设计）显示删除按钮
+            if (voice.type === 'clone' || voice.type === 'design') {
+                const delBtn = document.createElement('button');
+                delBtn.className = 'btn btn-secondary btn-sm';
+                delBtn.style.cssText = 'flex-shrink:0; font-size:0.7rem; padding:2px 8px; margin-left:6px;';
+                delBtn.textContent = '🗑️';
+                delBtn.title = '删除此音色';
+                delBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteRemoteVoice(voice.id, voice.type, item);
+                };
+                item.appendChild(delBtn);
+            }
+
             item.addEventListener('click', () => {
                 // 取消自定义
                 if (customVoiceInput) customVoiceInput.value = '';
@@ -435,6 +459,59 @@ function initVoiceSelector() {
         });
 
         if (voiceCount) voiceCount.textContent = `(${voices.length} 个)`;
+    }
+
+    // 删除远程音色
+    async function deleteRemoteVoice(voiceId, voiceType, element) {
+        if (!confirm(`确定要删除音色 "${voiceId}" 吗？删除后无法恢复。`)) return;
+
+        const apiKey = localStorage.getItem('minimax_tts_api_key');
+        if (!apiKey) return;
+
+        try {
+            const response = await fetch('/api/voice/delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': apiKey
+                },
+                body: JSON.stringify({
+                    voice_type: voiceType,
+                    voice_id: voiceId
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.data?.base_resp?.status_code === 0) {
+                // 从 UI 移除
+                if (element) element.remove();
+                // 从 VOICE_LIBRARY 移除
+                const myVoices = VOICE_LIBRARY['我的音色'];
+                if (myVoices) {
+                    const idx = myVoices.findIndex(v => v.id === voiceId);
+                    if (idx >= 0) myVoices.splice(idx, 1);
+                }
+                // 从 localStorage 缓存移除
+                try {
+                    const cached = JSON.parse(localStorage.getItem('remote_voices') || '[]');
+                    const filtered = cached.filter(v => v.id !== voiceId);
+                    localStorage.setItem('remote_voices', JSON.stringify(filtered));
+                } catch (e) {}
+                // 如果清空了，移除「我的音色」选项
+                if (myVoices && myVoices.length === 0) {
+                    const opt = langSelect.querySelector('option[value="我的音色"]');
+                    if (opt) opt.remove();
+                }
+                // 更新计数
+                const currentVoices = VOICE_LIBRARY[langSelect.value] || [];
+                if (voiceCount) voiceCount.textContent = `(${currentVoices.length} 个)`;
+            } else {
+                alert('删除失败: ' + (result.data?.base_resp?.status_msg || result.error || '未知错误'));
+            }
+        } catch (e) {
+            alert('删除失败: ' + e.message);
+        }
     }
 
     function filterVoices(searchText) {
