@@ -997,19 +997,46 @@ app.post('/api/music/generate', validateApiKey, async (req, res) => {
 // 歌词生成
 app.post('/api/music/lyrics', validateApiKey, async (req, res) => {
     try {
-        const { mode = 'write_full_song', prompt } = req.body;
+        const { mode = 'write_full_song', prompt, lyrics, title } = req.body;
 
-        if (!prompt) {
+        // mode 校验
+        if (!['write_full_song', 'edit'].includes(mode)) {
             return res.status(400).json({
                 success: false,
-                error: 'prompt 不能为空'
+                error: 'mode 必须为 write_full_song 或 edit'
             });
         }
 
-        const response = await axios.post(`${MINIMAX_API_BASE}/v1/lyrics_generation`, {
-            mode,
-            prompt
-        }, {
+        // edit 模式必须有 lyrics
+        if (mode === 'edit' && !lyrics) {
+            return res.status(400).json({
+                success: false,
+                error: 'edit 模式必须提供 lyrics'
+            });
+        }
+
+        // prompt 长度校验
+        if (prompt && prompt.length > 2000) {
+            return res.status(400).json({
+                success: false,
+                error: 'prompt 长度不能超过 2000 字符'
+            });
+        }
+
+        // lyrics 长度校验
+        if (lyrics && lyrics.length > 3500) {
+            return res.status(400).json({
+                success: false,
+                error: 'lyrics 长度不能超过 3500 字符'
+            });
+        }
+
+        const payload = { mode };
+        if (prompt) payload.prompt = prompt;
+        if (lyrics) payload.lyrics = lyrics;
+        if (title) payload.title = title;
+
+        const response = await axios.post(`${MINIMAX_API_BASE}/v1/lyrics_generation`, payload, {
             headers: {
                 'Authorization': `Bearer ${req.apiKey}`,
                 'Content-Type': 'application/json'

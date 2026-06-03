@@ -44,9 +44,13 @@
                             <div class="form-group">
                                 <label class="form-label">模式</label>
                                 <select id="modeSelect" class="form-input">
-                                    <option value="write_full_song" selected>完整歌曲 (write_full_song)</option>
+                                    <option value="write_full_song" selected>写完整歌曲</option>
+                                    <option value="edit">编辑 / 续写歌词</option>
                                 </select>
-                                <div class="upload-hint" style="margin-top: 6px;">自动包含 Intro / Verse / Chorus / Bridge / Outro</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">歌曲标题（可选）</label>
+                                <input type="text" id="titleInput" class="form-input" placeholder="留空则自动生成歌名">
                             </div>
                         </div>
 
@@ -65,10 +69,19 @@
                     <div class="output-panel">
                         <div class="output-area">
                             <div class="output-header">
-                                <span class="output-title">歌曲主题</span>
-                                <span class="text-muted" style="font-size: 0.8125rem;">越具体效果越好</span>
+                                <span id="promptLabel" class="output-title">歌曲主题</span>
+                                <span class="text-muted" style="font-size: 0.8125rem;" id="promptHint">越具体效果越好</span>
                             </div>
                             <textarea id="themeInput" class="form-input" style="flex: 0 0 auto; min-height: 80px; resize: vertical;" placeholder="例：一首关于春天初恋的清新民谣"></textarea>
+
+                            <!-- 编辑模式：已有歌词输入 -->
+                            <div id="editLyricsSection" class="hidden" style="margin-top: 12px;">
+                                <div class="output-header" style="margin-bottom: 8px;">
+                                    <span class="output-title" style="font-size: 0.875rem;">已有歌词（必填）</span>
+                                    <span class="text-muted" style="font-size: 0.75rem;">最多 3500 字符</span>
+                                </div>
+                                <textarea id="editLyricsInput" class="form-input" style="min-height: 160px; resize: vertical; font-family: monospace; font-size: 0.875rem;" placeholder="粘贴已有歌词，系统将续写或修改..."></textarea>
+                            </div>
 
                             <div style="margin-top: 16px;">
                                 <button id="generateBtn" class="btn btn-primary w-full" onclick="generateLyrics()">
@@ -126,29 +139,51 @@
     <script>
         let currentLyrics = '';
 
+        // 模式切换
+        document.getElementById('modeSelect').addEventListener('change', function() {
+            const isEdit = this.value === 'edit';
+            document.getElementById('editLyricsSection').classList.toggle('hidden', !isEdit);
+            document.getElementById('promptLabel').textContent = isEdit ? '编辑指令' : '歌曲主题';
+            document.getElementById('promptHint').textContent = isEdit ? '描述如何修改/续写' : '越具体效果越好';
+            document.getElementById('themeInput').placeholder = isEdit
+                ? '例：把副歌改得更欢快，续写第三段'
+                : '例：一首关于春天初恋的清新民谣';
+            document.getElementById('generateBtn').textContent = isEdit ? '✍️ 编辑歌词' : '✍️ 生成歌词';
+        });
+
         function setTheme(text) {
             document.getElementById('themeInput').value = text;
         }
 
         async function generateLyrics() {
+            const mode = document.getElementById('modeSelect').value;
             const prompt = document.getElementById('themeInput').value.trim();
-            if (!prompt) {
-                showToast('请输入歌曲主题', 'error');
+            const title = document.getElementById('titleInput').value.trim();
+            const editLyrics = document.getElementById('editLyricsInput').value.trim();
+
+            if (mode === 'edit' && !editLyrics) {
+                showToast('编辑模式必须提供已有歌词', 'error');
                 return;
             }
 
             const btn = document.getElementById('generateBtn');
-            setBtnLoading(btn, true, '✍️ 生成歌词');
+            const btnLabel = mode === 'edit' ? '✍️ 编辑歌词' : '✍️ 生成歌词';
+            setBtnLoading(btn, true, btnLabel);
             document.getElementById('resultSection').classList.add('hidden');
-            setStatus('正在生成歌词...', 'AI 正在思考创作', 'processing');
+            setStatus(mode === 'edit' ? '正在编辑歌词...' : '正在生成歌词...', 'AI 正在思考创作', 'processing');
 
             const apiKey = getApiKey();
             if (!apiKey) {
                 showApiKeyModal();
                 showToast('请先设置 API Key', 'error');
-                setBtnLoading(btn, false, '✍️ 生成歌词');
+                setBtnLoading(btn, false, btnLabel);
                 return;
             }
+
+            const payload = { mode };
+            if (prompt) payload.prompt = prompt;
+            if (title) payload.title = title;
+            if (mode === 'edit' && editLyrics) payload.lyrics = editLyrics;
 
             try {
                 const response = await fetch('/api/music/lyrics', {
@@ -157,14 +192,12 @@
                         'Content-Type': 'application/json',
                         'x-api-key': apiKey
                     },
-                    body: JSON.stringify({
-                        mode: document.getElementById('modeSelect').value,
-                        prompt
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 const result = await response.json();
-                setBtnLoading(btn, false, '✍️ 生成歌词');
+                const mode = document.getElementById('modeSelect').value;
+                setBtnLoading(btn, false, mode === 'edit' ? '✍️ 编辑歌词' : '✍️ 生成歌词');
 
                 if (!result.success) {
                     throw new Error(result.error || '生成失败');
