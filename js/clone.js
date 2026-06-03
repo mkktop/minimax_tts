@@ -118,20 +118,13 @@ function handleCloneAudioUpload(event) {
         return;
     }
 
-    cloneAudioFile = file;
-
-    // 显示文件信息
-    const infoEl = document.getElementById('cloneAudioInfo');
-    const nameEl = document.getElementById('cloneAudioName');
-    const sizeEl = document.getElementById('cloneAudioSize');
-
-    if (infoEl) {
-        infoEl.classList.remove('hidden');
-        nameEl.textContent = file.name;
-        sizeEl.textContent = formatFileSize(file.size);
-    }
-
-    showToast('克隆音频已选择', 'success');
+    // 校验音频时长：≥10秒，≤5分钟
+    validateAudioDuration(file, 10, 300, (ok, duration) => {
+        if (!ok) return;
+        cloneAudioFile = file;
+        showFileInfo('clone', file, duration);
+        showToast('克隆音频已选择', 'success');
+    });
 }
 
 // 处理示例音频上传
@@ -145,20 +138,72 @@ function handlePromptAudioUpload(event) {
         return;
     }
 
-    // 示例音频应小于 8 秒
-    promptAudioFile = file;
+    const maxSize = 20 * 1024 * 1024; // 20MB
+    if (file.size > maxSize) {
+        showToast('文件大小不能超过 20MB', 'error');
+        return;
+    }
 
-    const infoEl = document.getElementById('promptAudioInfo');
-    const nameEl = document.getElementById('promptAudioName');
-    const sizeEl = document.getElementById('promptAudioSize');
+    // 校验音频时长：<8秒
+    validateAudioDuration(file, 0, 8, (ok, duration) => {
+        if (!ok) return;
+        promptAudioFile = file;
+        showFileInfo('prompt', file, duration);
+        showToast('示例音频已选择', 'success');
+    });
+}
+
+// 校验音频时长
+function validateAudioDuration(file, minSeconds, maxSeconds, callback) {
+    const audio = new Audio();
+    const url = URL.createObjectURL(file);
+
+    audio.onloadedmetadata = function() {
+        URL.revokeObjectURL(url);
+        const duration = audio.duration;
+
+        if (isNaN(duration) || duration <= 0) {
+            // 无法获取时长，跳过校验，允许通过
+            callback(true, null);
+            return;
+        }
+
+        if (minSeconds > 0 && duration < minSeconds) {
+            showToast(`音频时长过短（${duration.toFixed(1)}秒），至少需要 ${minSeconds} 秒`, 'error');
+            callback(false, duration);
+            return;
+        }
+
+        if (maxSeconds > 0 && duration > maxSeconds) {
+            showToast(`音频时长过长（${duration.toFixed(1)}秒），不能超过 ${maxSeconds} 秒`, 'error');
+            callback(false, duration);
+            return;
+        }
+
+        callback(true, duration);
+    };
+
+    audio.onerror = function() {
+        URL.revokeObjectURL(url);
+        // 无法解析，允许通过（交给后端校验）
+        callback(true, null);
+    };
+
+    audio.src = url;
+}
+
+// 显示文件信息
+function showFileInfo(type, file, duration) {
+    const infoEl = document.getElementById(type + 'AudioInfo');
+    const nameEl = document.getElementById(type + 'AudioName');
+    const sizeEl = document.getElementById(type + 'AudioSize');
 
     if (infoEl) {
         infoEl.classList.remove('hidden');
         nameEl.textContent = file.name;
-        sizeEl.textContent = formatFileSize(file.size);
+        const durText = duration != null ? ` | ${duration.toFixed(1)}秒` : '';
+        sizeEl.textContent = formatFileSize(file.size) + durText;
     }
-
-    showToast('示例音频已选择', 'success');
 }
 
 function formatFileSize(bytes) {
