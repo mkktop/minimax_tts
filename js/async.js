@@ -1,6 +1,7 @@
 /**
  * 异步合成 - JavaScript
  * 长文本专用，支持字幕时间戳
+ * API: POST /v1/t2a_async_v2
  */
 
 // 音色数据
@@ -40,6 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initLanguageSelect();
     initSliders();
     initTextInput();
+    initVoiceModifySliders();
 });
 
 function initApiKey() {
@@ -102,7 +104,6 @@ function initModelSelection() {
 
 function initLanguageSelect() {
     // 音色选择逻辑已迁移到 voice-library.js
-    // 这里只保留空函数避免报错
 }
 
 function initSliders() {
@@ -115,7 +116,22 @@ function initSliders() {
     sliders.forEach(({ id, valueId, format }) => {
         const slider = document.getElementById(id);
         const valueEl = document.getElementById(valueId);
+        slider.addEventListener('input', function() {
+            valueEl.textContent = format(this.value);
+        });
+    });
+}
 
+function initVoiceModifySliders() {
+    const sliders = [
+        { id: 'modifyPitchSlider', valueId: 'modifyPitchValue', format: v => v },
+        { id: 'modifyIntensitySlider', valueId: 'modifyIntensityValue', format: v => v },
+        { id: 'modifyTimbreSlider', valueId: 'modifyTimbreValue', format: v => v }
+    ];
+
+    sliders.forEach(({ id, valueId, format }) => {
+        const slider = document.getElementById(id);
+        const valueEl = document.getElementById(valueId);
         slider.addEventListener('input', function() {
             valueEl.textContent = format(this.value);
         });
@@ -149,7 +165,6 @@ function handleFileUpload(event) {
 
     if (file.name.endsWith('.zip')) {
         showToast('正在解压和处理文件...', 'info');
-        // 简单处理：直接读取（实际应使用 JSZip）
         reader.onload = function(e) {
             showToast('ZIP 文件需要后端处理，请使用纯文本输入', 'info');
         };
@@ -183,15 +198,62 @@ async function createTask() {
         return;
     }
 
+    // 收集所有参数
     const model = document.querySelector('.model-option.selected')?.dataset.model || 'speech-2.8-hd';
     const voiceId = window.getSelectedVoiceId ? window.getSelectedVoiceId() : 'male-qn-qingse';
     const speed = parseFloat(document.getElementById('speedSlider').value);
     const pitch = parseInt(document.getElementById('pitchSlider').value);
     const vol = parseFloat(document.getElementById('volSlider').value);
     const sampleRate = parseInt(document.getElementById('sampleRateSelect').value);
+    const bitrate = parseInt(document.getElementById('bitrateSelect').value);
     const format = document.getElementById('formatSelect').value;
     const channel = parseInt(document.getElementById('channelSelect').value);
-    const generateSubtitle = document.getElementById('generateSubtitle').checked;
+    const emotion = document.getElementById('emotionSelect').value;
+    const languageBoost = document.getElementById('languageBoostSelect').value;
+    const englishNormalization = document.getElementById('englishNormalization').checked;
+    const pronunciationText = document.getElementById('pronunciationInput').value.trim();
+    const modifyPitch = parseInt(document.getElementById('modifyPitchSlider').value);
+    const modifyIntensity = parseInt(document.getElementById('modifyIntensitySlider').value);
+    const modifyTimbre = parseInt(document.getElementById('modifyTimbreSlider').value);
+    const soundEffects = document.getElementById('soundEffectsSelect').value;
+    const aigcWatermark = document.getElementById('aigcWatermark').checked;
+
+    // 解析发音字典
+    let pronunciationDict = undefined;
+    if (pronunciationText) {
+        const tones = pronunciationText.split('\n').map(l => l.trim()).filter(Boolean);
+        if (tones.length > 0) {
+            pronunciationDict = { tone: tones };
+        }
+    }
+
+    // 构建 voice_modify
+    let voiceModify = undefined;
+    if (modifyPitch !== 0 || modifyIntensity !== 0 || modifyTimbre !== 0 || soundEffects) {
+        voiceModify = {};
+        if (modifyPitch !== 0) voiceModify.pitch = modifyPitch;
+        if (modifyIntensity !== 0) voiceModify.intensity = modifyIntensity;
+        if (modifyTimbre !== 0) voiceModify.timbre = modifyTimbre;
+        if (soundEffects) voiceModify.sound_effects = soundEffects;
+    }
+
+    // 构建 voice_setting
+    const voiceSetting = {
+        voice_id: voiceId,
+        speed: speed,
+        pitch: pitch,
+        vol: vol
+    };
+    if (emotion) voiceSetting.emotion = emotion;
+    if (englishNormalization) voiceSetting.english_normalization = true;
+
+    // 构建 audio_setting（注意异步 API 字段名是 audio_sample_rate）
+    const audioSetting = {
+        audio_sample_rate: sampleRate,
+        bitrate: bitrate,
+        format: format,
+        channel: channel
+    };
 
     // 显示状态
     const taskSection = document.getElementById('taskSection');
@@ -203,38 +265,34 @@ async function createTask() {
     synthBtn.innerHTML = '<span class="spinner"></span> 创建中...';
 
     try {
+        const body = {
+            model: model,
+            text: text,
+            voice_setting: voiceSetting,
+            audio_setting: audioSetting
+        };
+        if (languageBoost) body.language_boost = languageBoost;
+        if (pronunciationDict) body.pronunciation_dict = pronunciationDict;
+        if (voiceModify) body.voice_modify = voiceModify;
+        if (aigcWatermark) body.aigc_watermark = true;
+
         const response = await fetch('/api/tts/async/create', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'x-api-key': apiKey
             },
-            body: JSON.stringify({
-                model: model,
-                text: text,
-                voice_setting: {
-                    voice_id: voiceId,
-                    speed: speed,
-                    pitch: pitch,
-                    vol: vol
-                },
-                audio_setting: {
-                    audio_sample_rate: sampleRate,
-                    bitrate: 128000,
-                    format: format,
-                    channel: channel
-                },
-                language_boost: 'auto'
-            })
+            body: JSON.stringify(body)
         });
 
         const result = await response.json();
 
         if (!response.ok || !result.success) {
-            throw new Error(result.error?.message || '创建任务失败');
+            throw new Error(result.error?.message || result.error || '创建任务失败');
         }
 
         currentTaskId = result.data.task_id;
+        currentFileId = result.data.file_id;
         document.getElementById('taskIdInput').value = currentTaskId;
 
         updateStatus('processing', '任务已创建', `Task ID: ${currentTaskId}`);
@@ -282,24 +340,29 @@ async function queryTask() {
             throw new Error(result.error?.message || '查询失败');
         }
 
-        const status = result.data.status;
-        const progress = result.data.progress || 0;
+        const data = result.data;
+        const status = data.status;
+        const progress = data.progress || 0;
 
         document.getElementById('progressFill').style.width = progress + '%';
 
         switch (status) {
             case 'Pending':
+                updateStatus('pending', '排队中...', '任务等待处理');
+                break;
             case 'Processing':
                 updateStatus('processing', '处理中...', `进度: ${progress}%`);
                 break;
             case 'Success':
-                currentFileId = result.data.file_id;
-                updateStatus('success', '任务完成', '音频已就绪');
+                currentFileId = data.file_id;
+                updateStatus('success', '任务完成', '音频已就绪，点击下载');
+                document.getElementById('progressFill').style.width = '100%';
                 document.getElementById('taskResult').classList.remove('hidden');
+                document.getElementById('downloadSubtitleBtn').classList.remove('hidden');
                 stopPolling();
                 break;
             case 'Failed':
-                updateStatus('error', '任务失败', result.data.failed_reason || '未知错误');
+                updateStatus('error', '任务失败', data.failed_reason || '未知错误');
                 stopPolling();
                 break;
             default:
@@ -359,7 +422,9 @@ async function downloadAudio() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `minimax_async_${currentTaskId}.mp3`;
+        const format = document.getElementById('formatSelect').value;
+        const extMap = { 'mp3': 'mp3', 'wav': 'wav', 'flac': 'flac', 'pcm': 'pcm', 'opus': 'ogg', 'pcmu_raw': 'pcmu', 'pcmu_wav': 'wav' };
+        a.download = `minimax_async_${currentTaskId}.${extMap[format] || 'mp3'}`;
         a.click();
         URL.revokeObjectURL(url);
 
@@ -373,8 +438,12 @@ async function downloadAudio() {
 
 // 下载字幕
 function downloadSubtitle() {
-    // 字幕功能需要后端返回字幕数据
-    showToast('字幕下载功能开发中', 'info');
+    if (!currentFileId) {
+        showToast('没有字幕数据', 'error');
+        return;
+    }
+    // 异步任务的字幕通过 file_id 下载，和音频在同一个文件组中
+    showToast('字幕随音频一起下载', 'info');
 }
 
 function updateStatus(type, text, detail) {

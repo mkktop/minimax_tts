@@ -544,7 +544,7 @@ app.post('/api/tts/http', validateApiKey, async (req, res) => {
 // 异步合成 - 创建任务
 app.post('/api/tts/async/create', validateApiKey, async (req, res) => {
     try {
-        const { model, text, text_file_id, voice_setting, audio_setting, language_boost, pronunciation_dict, voice_modify } = req.body;
+        const { model, text, text_file_id, voice_setting, audio_setting, language_boost, pronunciation_dict, voice_modify, aigc_watermark } = req.body;
 
         const payload = {
             model: model || 'speech-2.8-hd',
@@ -573,6 +573,7 @@ app.post('/api/tts/async/create', validateApiKey, async (req, res) => {
         if (language_boost) payload.language_boost = language_boost;
         if (pronunciation_dict) payload.pronunciation_dict = pronunciation_dict;
         if (voice_modify) payload.voice_modify = voice_modify;
+        if (aigc_watermark) payload.aigc_watermark = true;
 
         const response = await axios.post(`${MINIMAX_API_BASE}/v1/t2a_async_v2`, payload, {
             headers: {
