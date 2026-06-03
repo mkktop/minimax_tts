@@ -4,14 +4,19 @@
  */
 
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const path = require('path');
 const axios = require('axios');
 const multer = require('multer');
 const FormData = require('form-data');
+const WebSocket = require('ws');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// 创建 HTTP 服务器（用于 WebSocket 升级）
+const server = http.createServer(app);
 
 // 文件上传配置
 const upload = multer({
@@ -643,20 +648,101 @@ app.get('/api/tts/async/download', validateApiKey, async (req, res) => {
 });
 
 // ============ WebSocket 代理（流式合成）============
-// 用于客户端 WebSocket 直连的 Token 验证
-app.post('/api/tts/websocket/token', validateApiKey, (req, res) => {
-    res.json({
-        success: true,
-        ws_url: 'wss://api.minimaxi.com/ws/v1/t2a_v2',
-        // API Key 直接传给客户端，让客户端使用原生 WebSocket 连接
-        message: 'WebSocket 直连模式 - API Key 已验证'
-    });
+// 浏览器连 ws://localhost:3000/ws/tts，后端转发到 wss://api.minimaxi.com/ws/v1/t2a_v2
+const wss = new WebSocket.Server({ noServer: true });
+
+// 处理 HTTP 升级到 WebSocket
+server.on('upgrade', (request, socket, head) => {
+    const pathname = new URL(request.url, `http://${request.headers.host}`).pathname;
+
+    if (pathname === '/ws/tts') {
+        // 从 URL query 或 header 中提取 API Key
+        const url = new URL(request.url, `http://${request.headers.host}`);
+        const apiKey = url.searchParams.get('token') || request.headers['x-api-key'];
+
+        if (!apiKey) {
+            socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+            socket.destroy();
+            return;
+        }
+
+        wss.handleUpgrade(request, socket, head, (ws) => {
+            ws._minimaxApiKey = apiKey;
+            wss.emit('connection', ws, request);
+        });
+    } else {
+        socket.destroy();
+    }
 });
 
-// WebSocket 文本上传代理（用于流式合成的文本输入）
-app.post('/api/tts/websocket/text', validateApiKey, async (req, res) => {
-    // 文本上传逻辑（如果需要后端处理）
-    res.json({ success: true, message: 'text uploaded' });
+wss.on('connection', (clientWs, request) => {
+    const apiKey = clientWs._minimaxApiKey;
+    console.log('[WS] 客户端连接，开始代理到 MiniMax WebSocket');
+
+    // 连接到 MiniMax WebSocket 服务器
+    const minimaxWs = new WebSocket(`wss://api.minimaxi.com/ws/v1/t2a_v2?Authorization=Bearer ${apiKey}`);
+
+    let clientClosed = false;
+    let upstreamClosed = false;
+
+    minimaxWs.on('open', () => {
+        console.log('[WS] 已连接到 MiniMax WebSocket 服务器');
+        if (clientClosed) {
+            minimaxWs.close();
+            return;
+        }
+    });
+
+    // 上游（MiniMax）→ 客户端（浏览器）
+    minimaxWs.on('message', (data) => {
+        if (!clientClosed && clientWs.readyState === WebSocket.OPEN) {
+            clientWs.send(data.toString());
+        }
+    });
+
+    minimaxWs.on('close', (code, reason) => {
+        upstreamClosed = true;
+        console.log(`[WS] MiniMax 连接关闭: ${code}`);
+        if (!clientClosed && clientWs.readyState === WebSocket.OPEN) {
+            clientWs.close(code, reason);
+        }
+    });
+
+    minimaxWs.on('error', (err) => {
+        console.error('[WS] MiniMax 连接错误:', err.message);
+        if (!clientClosed && clientWs.readyState === WebSocket.OPEN) {
+            clientWs.send(JSON.stringify({
+                event: 'proxy_error',
+                error: '无法连接到 MiniMax WebSocket 服务器',
+                detail: err.message
+            }));
+            clientWs.close(1011, err.message);
+        }
+    });
+
+    // 客户端（浏览器）→ 上游（MiniMax）
+    clientWs.on('message', (data) => {
+        if (!upstreamClosed && minimaxWs.readyState === WebSocket.OPEN) {
+            minimaxWs.send(data.toString());
+        } else if (!upstreamClosed && minimaxWs.readyState === WebSocket.CONNECTING) {
+            // 等上游连接好了再发
+            minimaxWs.once('open', () => {
+                minimaxWs.send(data.toString());
+            });
+        }
+    });
+
+    clientWs.on('close', (code) => {
+        clientClosed = true;
+        console.log(`[WS] 客户端断开: ${code}`);
+        if (!upstreamClosed) {
+            minimaxWs.close();
+        }
+    });
+
+    clientWs.on('error', (err) => {
+        console.error('[WS] 客户端错误:', err.message);
+    });
 });
 
 // 文件上传代理 - 使用 multer 解析
@@ -1157,7 +1243,7 @@ app.post('/api/music/cover/preprocess', validateApiKey, async (req, res) => {
 // 后端仅提供 token 验证和连接引导
 
 // 启动服务器
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║

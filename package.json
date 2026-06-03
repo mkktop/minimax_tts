@@ -8,15 +8,21 @@
     "dev": "node backend/server.js",
     "generate-images": "node scripts/generate-images.js"
   },
-  "keywords": ["tts", "speech", "minimax", "voice"],
+  "keywords": [
+    "tts",
+    "speech",
+    "minimax",
+    "voice"
+  ],
   "author": "",
   "license": "MIT",
   "type": "commonjs",
   "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
     "axios": "^1.6.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "form-data": "^4.0.0",
     "multer": "^1.4.5-lts.1",
-    "form-data": "^4.0.0"
+    "ws": "^8.21.0"
   }
 }

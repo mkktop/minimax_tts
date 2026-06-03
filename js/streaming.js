@@ -1,6 +1,7 @@
 /**
- * 同步合成（流式）- JavaScript
- * 边合成边播放，低延迟体验
+ * 同步合成（流式 WebSocket）- JavaScript
+ * 基于 WebSocket 协议实时流式生成音频
+ * 协议流程：task_start → task_continue(text) → task_finish
  */
 
 // 音色数据
@@ -48,13 +49,16 @@ const VOICES_DATA = {
     '其他': []
 };
 
-// 其他语言的音色将从后端获取
 const OTHER_LANGUAGES = ['葡萄牙文', '法文', '印尼文', '德文', '俄文', '意大利文', '阿拉伯文', '土耳其文', '越南文', '泰文'];
 
 // 状态变量
 let audioElement = null;
 let isPlaying = false;
 let audioBlob = null;
+let ws = null; // WebSocket 连接
+let audioChunks = []; // 收集 hex 音频片段
+let subtitleEntries = []; // 字幕条目
+let startTime = 0;
 
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
@@ -64,6 +68,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initSliders();
     initTextInput();
     initAudioPlayer();
+    initSubtitleToggle();
+    initVoiceModifySliders();
 });
 
 function initApiKey() {
@@ -126,7 +132,6 @@ function initModelSelection() {
 
 function initLanguageSelect() {
     // 音色选择逻辑已迁移到 voice-library.js
-    // 这里只保留空函数避免报错
 }
 
 function initSliders() {
@@ -139,10 +144,33 @@ function initSliders() {
     sliders.forEach(({ id, valueId, format }) => {
         const slider = document.getElementById(id);
         const valueEl = document.getElementById(valueId);
-
         slider.addEventListener('input', function() {
             valueEl.textContent = format(this.value);
         });
+    });
+}
+
+function initVoiceModifySliders() {
+    const sliders = [
+        { id: 'modifyPitchSlider', valueId: 'modifyPitchValue', format: v => v },
+        { id: 'modifyIntensitySlider', valueId: 'modifyIntensityValue', format: v => v },
+        { id: 'modifyTimbreSlider', valueId: 'modifyTimbreValue', format: v => v }
+    ];
+
+    sliders.forEach(({ id, valueId, format }) => {
+        const slider = document.getElementById(id);
+        const valueEl = document.getElementById(valueId);
+        slider.addEventListener('input', function() {
+            valueEl.textContent = format(this.value);
+        });
+    });
+}
+
+function initSubtitleToggle() {
+    const checkbox = document.getElementById('subtitleEnable');
+    const typeGroup = document.getElementById('subtitleTypeGroup');
+    checkbox.addEventListener('change', function() {
+        typeGroup.style.display = this.checked ? 'block' : 'none';
     });
 }
 
@@ -179,7 +207,8 @@ function formatTime(seconds) {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-// 开始合成
+// ============ WebSocket 流式合成核心 ============
+
 async function startSynthesis() {
     const apiKey = getApiKey();
     if (!apiKey) {
@@ -198,111 +227,342 @@ async function startSynthesis() {
         return;
     }
 
-    // 获取设置
+    // 收集所有参数
     const model = document.querySelector('.model-option.selected')?.dataset.model || 'speech-2.8-hd';
     const voiceId = window.getSelectedVoiceId ? window.getSelectedVoiceId() : 'male-qn-qingse';
     const speed = parseFloat(document.getElementById('speedSlider').value);
     const pitch = parseInt(document.getElementById('pitchSlider').value);
     const vol = parseFloat(document.getElementById('volSlider').value);
     const sampleRate = parseInt(document.getElementById('sampleRateSelect').value);
+    const bitrate = parseInt(document.getElementById('bitrateSelect').value);
     const format = document.getElementById('formatSelect').value;
+    const channel = parseInt(document.getElementById('channelSelect').value);
+    const emotion = document.getElementById('emotionSelect').value;
+    const languageBoost = document.getElementById('languageBoostSelect').value;
+    const englishNormalization = document.getElementById('englishNormalization').checked;
+    const latexRead = document.getElementById('latexRead').checked;
+    const pronunciationText = document.getElementById('pronunciationInput').value.trim();
+    const modifyPitch = parseInt(document.getElementById('modifyPitchSlider').value);
+    const modifyIntensity = parseInt(document.getElementById('modifyIntensitySlider').value);
+    const modifyTimbre = parseInt(document.getElementById('modifyTimbreSlider').value);
+    const soundEffects = document.getElementById('soundEffectsSelect').value;
+    const subtitleEnable = document.getElementById('subtitleEnable').checked;
+    const subtitleType = document.getElementById('subtitleTypeSelect').value;
+    const continuousSound = document.getElementById('continuousSound').checked;
 
-    // 显示状态
+    // 解析发音字典
+    let pronunciationDict = undefined;
+    if (pronunciationText) {
+        const tones = pronunciationText.split('\n').map(l => l.trim()).filter(Boolean);
+        if (tones.length > 0) {
+            pronunciationDict = { tone: tones };
+        }
+    }
+
+    // 构建 voice_modify（仅在有修改时添加）
+    let voiceModify = undefined;
+    if (modifyPitch !== 0 || modifyIntensity !== 0 || modifyTimbre !== 0 || soundEffects) {
+        voiceModify = {};
+        if (modifyPitch !== 0) voiceModify.pitch = modifyPitch;
+        if (modifyIntensity !== 0) voiceModify.intensity = modifyIntensity;
+        if (modifyTimbre !== 0) voiceModify.timbre = modifyTimbre;
+        if (soundEffects) voiceModify.sound_effects = soundEffects;
+    }
+
+    // 构建 voice_setting
+    const voiceSetting = {
+        voice_id: voiceId,
+        speed: speed,
+        pitch: pitch,
+        vol: vol
+    };
+    if (emotion) voiceSetting.emotion = emotion;
+    if (englishNormalization) voiceSetting.english_normalization = true;
+    if (latexRead) voiceSetting.latex_read = true;
+
+    // 构建 audio_setting
+    const audioSetting = {
+        sample_rate: sampleRate,
+        bitrate: bitrate,
+        format: format,
+        channel: channel
+    };
+
+    // 构建 task_start 消息
+    const taskStartMsg = {
+        event: 'task_start',
+        model: model,
+        voice_setting: voiceSetting,
+        audio_setting: audioSetting
+    };
+    if (pronunciationDict) taskStartMsg.pronunciation_dict = pronunciationDict;
+    if (languageBoost) taskStartMsg.language_boost = languageBoost;
+    if (voiceModify) taskStartMsg.voice_modify = voiceModify;
+    if (subtitleEnable) {
+        taskStartMsg.subtitle_enable = true;
+        taskStartMsg.subtitle_type = subtitleType;
+    }
+    if (continuousSound) taskStartMsg.continuous_sound = true;
+
+    // UI 状态
     const statusSection = document.getElementById('statusSection');
     statusSection.classList.remove('hidden');
+    document.getElementById('streamInfo').classList.remove('hidden');
     updateStatus('processing', '连接中...', '正在建立 WebSocket 连接');
+    document.getElementById('chunkCount').textContent = '0';
+    document.getElementById('dataSize').textContent = '0 KB';
+    document.getElementById('latency').textContent = '-';
 
     const synthBtn = document.getElementById('synthBtn');
     synthBtn.disabled = true;
     synthBtn.innerHTML = '<span class="spinner"></span> 合成中...';
 
+    // 重置
+    audioChunks = [];
+    subtitleEntries = [];
+    startTime = Date.now();
+
     try {
-        // 由于浏览器无法直接连接 WebSocket wss://，我们需要通过后端代理
-        // 这里使用 HTTP API 作为替代方案
-        updateStatus('processing', '合成中...', '正在处理文本');
+        // 连接到后端 WebSocket 代理
+        const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${location.host}/ws/tts?token=${encodeURIComponent(apiKey)}`;
 
-        const response = await fetch('/api/tts/http', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey
-            },
-            body: JSON.stringify({
-                model: model,
-                text: text,
-                voice_setting: {
-                    voice_id: voiceId,
-                    speed: speed,
-                    pitch: pitch,
-                    vol: vol,
-                    english_normalization: false
-                },
-                audio_setting: {
-                    sample_rate: sampleRate,
-                    bitrate: 128000,
-                    format: format,
-                    channel: 1
-                }
-            })
-        });
+        await new Promise((resolve, reject) => {
+            ws = new WebSocket(wsUrl);
 
-        if (!response.ok) {
-            throw new Error('合成失败');
-        }
-
-        // 获取音频数据 - MiniMax 返回的是 hex 编码的音频
-        const result = await response.json();
-
-        if (result.success && result.data?.data?.audio) {
-            // 将 hex 字符串转换为二进制数据
-            const hexString = result.data.data.audio;
-            const audioBytes = new Uint8Array(hexString.length / 2);
-            for (let i = 0; i < hexString.length; i += 2) {
-                audioBytes[i / 2] = parseInt(hexString.substr(i, 2), 16);
-            }
-
-            const mimeType = format === 'wav' ? 'audio/wav' : format === 'ogg' ? 'audio/ogg' : 'audio/mpeg';
-            audioBlob = new Blob([audioBytes], { type: mimeType });
-        } else {
-            // 兜底：直接作为二进制处理
-            const audioData = await response.arrayBuffer();
-            audioBlob = new Blob([audioData], { type: 'audio/mpeg' });
-        }
-
-        const audioUrl = URL.createObjectURL(audioBlob);
-
-        audioElement.src = audioUrl;
-
-        // 等待元数据加载完成
-        await new Promise((resolve) => {
-            const onLoaded = () => {
-                audioElement.removeEventListener('loadedmetadata', onLoaded);
-                audioElement.removeEventListener('error', onLoaded);
+            ws.onopen = () => {
+                console.log('[WS] 已连接到后端代理');
+                updateStatus('processing', '已连接', '发送 task_start...');
                 resolve();
             };
-            audioElement.addEventListener('loadedmetadata', onLoaded);
-            audioElement.addEventListener('error', onLoaded);
+
+            ws.onerror = (err) => {
+                reject(new Error('WebSocket 连接失败'));
+            };
+
+            ws.onclose = (event) => {
+                if (!audioChunks.length) {
+                    reject(new Error(`连接关闭 (${event.code})`));
+                }
+            };
+
+            // 设置连接超时
+            setTimeout(() => {
+                if (ws.readyState !== WebSocket.OPEN) {
+                    reject(new Error('连接超时'));
+                }
+            }, 10000);
         });
 
-        // 显示播放器
-        document.getElementById('audioPlayer').classList.remove('hidden');
-        updateStatus('success', '合成完成', '音频已准备就绪');
+        // 监听消息
+        ws.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                handleServerMessage(msg);
+            } catch (e) {
+                console.error('[WS] 解析消息失败:', e);
+            }
+        };
 
-        // 自动播放
-        audioElement.play().catch(err => {
-            console.log('Auto-play blocked:', err);
-        });
-        isPlaying = true;
-        document.querySelector('.audio-play-btn').textContent = '⏸';
+        ws.onclose = (event) => {
+            console.log(`[WS] 连接关闭: ${event.code}`);
+        };
+
+        ws.onerror = (err) => {
+            console.error('[WS] 错误:', err);
+        };
+
+        // 发送 task_start
+        updateStatus('processing', '发送参数...', 'task_start');
+        ws.send(JSON.stringify(taskStartMsg));
 
     } catch (error) {
-        console.error('Synthesis error:', error);
-        updateStatus('error', '合成失败', error.message || '请检查 API Key 和网络连接');
-        showToast('合成失败: ' + (error.message || '未知错误'), 'error');
-    } finally {
+        console.error('WebSocket error:', error);
+        updateStatus('error', '连接失败', error.message);
+        showToast('连接失败: ' + error.message, 'error');
         synthBtn.disabled = false;
-        synthBtn.innerHTML = '🎤 开始合成';
+        synthBtn.innerHTML = '🎤 开始合成（WebSocket）';
     }
+}
+
+function handleServerMessage(msg) {
+    const synthBtn = document.getElementById('synthBtn');
+
+    switch (msg.event) {
+        case 'connected_success':
+            console.log('[WS] MiniMax 建连成功, session:', msg.session_id);
+            break;
+
+        case 'task_started':
+            console.log('[WS] 任务已开始');
+            if (msg.base_resp?.status_code === 0) {
+                updateStatus('processing', '合成中...', '发送文本...');
+                // 发送 task_continue（文本）
+                const text = document.getElementById('textInput').value.trim();
+                ws.send(JSON.stringify({
+                    event: 'task_continue',
+                    text: text
+                }));
+                // 发送 task_finish
+                ws.send(JSON.stringify({
+                    event: 'task_finish'
+                }));
+            } else {
+                updateStatus('error', '任务启动失败', msg.base_resp?.status_msg || '未知错误');
+                synthBtn.disabled = false;
+                synthBtn.innerHTML = '🎤 开始合成（WebSocket）';
+            }
+            break;
+
+        case 'task_continued':
+            // 收到音频片段
+            if (msg.data?.audio) {
+                audioChunks.push(msg.data.audio);
+                const totalSize = audioChunks.reduce((sum, hex) => sum + hex.length / 2, 0);
+                document.getElementById('chunkCount').textContent = audioChunks.length;
+                document.getElementById('dataSize').textContent = (totalSize / 1024).toFixed(1) + ' KB';
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                document.getElementById('latency').textContent = elapsed + 's';
+            }
+
+            // 收集字幕信息（如果有）
+            if (msg.subtitle) {
+                subtitleEntries.push(msg.subtitle);
+            }
+
+            // 任务完成
+            if (msg.is_final) {
+                finishSynthesis(msg.extra_info);
+            }
+            break;
+
+        case 'task_finished':
+            console.log('[WS] 任务结束');
+            break;
+
+        case 'task_failed':
+            console.error('[WS] 任务失败:', msg);
+            updateStatus('error', '合成失败', msg.base_resp?.status_msg || '未知错误');
+            showToast('合成失败: ' + (msg.base_resp?.status_msg || '未知错误'), 'error');
+            synthBtn.disabled = false;
+            synthBtn.innerHTML = '🎤 开始合成（WebSocket）';
+            if (ws) ws.close();
+            break;
+
+        case 'proxy_error':
+            updateStatus('error', '代理错误', msg.detail || msg.error);
+            showToast(msg.error || '代理连接失败', 'error');
+            synthBtn.disabled = false;
+            synthBtn.innerHTML = '🎤 开始合成（WebSocket）';
+            break;
+
+        default:
+            console.log('[WS] 未知事件:', msg.event, msg);
+    }
+}
+
+function finishSynthesis(extraInfo) {
+    const synthBtn = document.getElementById('synthBtn');
+
+    if (audioChunks.length === 0) {
+        updateStatus('error', '合成失败', '未收到音频数据');
+        synthBtn.disabled = false;
+        synthBtn.innerHTML = '🎤 开始合成（WebSocket）';
+        return;
+    }
+
+    // 合并所有 hex 音频片段
+    const fullHex = audioChunks.join('');
+    const audioBytes = new Uint8Array(fullHex.length / 2);
+    for (let i = 0; i < fullHex.length; i += 2) {
+        audioBytes[i / 2] = parseInt(fullHex.substr(i, 2), 16);
+    }
+
+    const format = document.getElementById('formatSelect').value;
+    const mimeTypeMap = {
+        'mp3': 'audio/mpeg',
+        'wav': 'audio/wav',
+        'flac': 'audio/flac',
+        'pcm': 'audio/pcm',
+        'opus': 'audio/ogg',
+        'pcmu_raw': 'audio/pcm',
+        'pcmu_wav': 'audio/wav'
+    };
+    const mimeType = mimeTypeMap[format] || 'audio/mpeg';
+    audioBlob = new Blob([audioBytes], { type: mimeType });
+
+    const audioUrl = URL.createObjectURL(audioBlob);
+    audioElement.src = audioUrl;
+
+    // 等待元数据加载
+    audioElement.addEventListener('loadedmetadata', function onMeta() {
+        audioElement.removeEventListener('loadedmetadata', onMeta);
+        document.getElementById('audioPlayer').classList.remove('hidden');
+        updateStatus('success', '合成完成', `音频 ${extraInfo?.audio_length ? (extraInfo.audio_length / 1000).toFixed(1) + 's' : ''}，${audioChunks.length} 片段`);
+
+        // 显示字幕（如果有）
+        if (subtitleEntries.length > 0) {
+            renderSubtitles();
+        }
+
+        // 自动播放
+        audioElement.play().catch(err => console.log('Auto-play blocked:', err));
+        isPlaying = true;
+        document.querySelector('.audio-play-btn').textContent = '⏸';
+    }, { once: true });
+
+    synthBtn.disabled = false;
+    synthBtn.innerHTML = '🎤 开始合成（WebSocket）';
+
+    // 关闭 WebSocket
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+    }
+}
+
+function renderSubtitles() {
+    const section = document.getElementById('subtitleSection');
+    const content = document.getElementById('subtitleContent');
+    section.classList.remove('hidden');
+
+    let srtContent = '';
+    let index = 1;
+    subtitleEntries.forEach(entry => {
+        // 简单渲染
+        if (entry.text) {
+            const start = formatSrtTime(entry.begin_time || 0);
+            const end = formatSrtTime(entry.end_time || 0);
+            srtContent += `${index}\n${start} --> ${end}\n${entry.text}\n\n`;
+            index++;
+        }
+    });
+
+    content.textContent = srtContent || '（字幕数据解析中...）';
+}
+
+function formatSrtTime(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const milliseconds = ms % 1000;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')},${milliseconds.toString().padStart(3, '0')}`;
+}
+
+function downloadSubtitle() {
+    const content = document.getElementById('subtitleContent').textContent;
+    if (!content) {
+        showToast('没有字幕数据', 'error');
+        return;
+    }
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `subtitle_${Date.now()}.srt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('字幕下载成功', 'success');
 }
 
 function updateStatus(type, text, detail) {
@@ -351,7 +611,11 @@ function downloadAudio() {
     }
 
     const format = document.getElementById('formatSelect').value;
-    const ext = format === 'mp3' ? 'mp3' : format === 'wav' ? 'wav' : 'ogg';
+    const extMap = {
+        'mp3': 'mp3', 'wav': 'wav', 'flac': 'flac', 'pcm': 'pcm',
+        'opus': 'ogg', 'pcmu_raw': 'pcmu', 'pcmu_wav': 'wav'
+    };
+    const ext = extMap[format] || 'mp3';
     const filename = `minimax_tts_${Date.now()}.${ext}`;
 
     const url = URL.createObjectURL(audioBlob);
