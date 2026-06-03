@@ -365,6 +365,10 @@ async function queryTask() {
                 updateStatus('error', '任务失败', data.failed_reason || '未知错误');
                 stopPolling();
                 break;
+            case 'Expired':
+                updateStatus('error', '任务已过期', '文件已超时失效，请重新创建任务');
+                stopPolling();
+                break;
             default:
                 updateStatus('pending', status, `进度: ${progress}%`);
         }
