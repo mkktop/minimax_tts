@@ -244,8 +244,8 @@ function initTextInput() {
 
     textInput.addEventListener('input', function() {
         const len = this.value.length;
-        charCount.textContent = `${len} / 100,000`;
-        charCount.style.color = len > 100000 ? 'var(--accent-red)' : 'var(--text-muted)';
+        charCount.textContent = `${len} / 50,000`;
+        charCount.style.color = len > 50000 ? 'var(--accent-red)' : 'var(--text-muted)';
     });
 }
 
@@ -293,8 +293,8 @@ async function createTask() {
         return;
     }
 
-    if (text.length > 100000) {
-        showToast('文本不能超过 100,000 字符', 'error');
+    if (text.length > 50000) {
+        showToast('文本不能超过 50,000 字符', 'error');
         return;
     }
 

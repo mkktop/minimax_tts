@@ -39,7 +39,7 @@
         <div class="container">
             <div class="page-header">
                 <h1 class="page-title">⏳ 异步合成</h1>
-                <p class="page-subtitle">长文本专用，支持字幕时间戳。任务队列处理，最长支持 10 万字符。</p>
+                <p class="page-subtitle">长文本专用，支持字幕时间戳。任务队列处理，文本最长 5 万字符，文本文件最长 100 万字符。</p>
             </div>
 
             <div class="work-area">
@@ -301,10 +301,10 @@
                             <div class="output-header">
                                 <span class="output-title">长文本输入</span>
                                 <div class="output-actions">
-                                    <span id="charCount" class="text-muted" style="font-size: 0.8125rem;">0 / 100,000</span>
+                                    <span id="charCount" class="text-muted" style="font-size: 0.8125rem;">0 / 50,000</span>
                                 </div>
                             </div>
-                            <textarea id="textInput" class="form-input" style="flex: 1; min-height: 200px;" placeholder="请输入要转换的长文本...（最多 100,000 字符）&#10;&#10;支持停顿控制：<#1.5#> 表示停顿 1.5 秒&#10;支持语气词（2.8 模型）：(laughs) (sighs) (breath) 等"></textarea>
+                            <textarea id="textInput" class="form-input" style="flex: 1; min-height: 200px;" placeholder="请输入要转换的长文本...（最多 50,000 字符）&#10;&#10;支持停顿控制：<#1.5#> 表示停顿 1.5 秒&#10;支持语气词（2.8 模型）：(laughs) (sighs) (breath) 等"></textarea>
                             <div style="margin-top: 12px;">
                                 <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
                                     <div class="upload-icon">📁</div>
