@@ -928,6 +928,33 @@ app.post('/api/voice/design', validateApiKey, async (req, res) => {
     }
 });
 
+// ============ 查询可用音色 ============
+app.post('/api/voice/list', validateApiKey, async (req, res) => {
+    try {
+        const { voice_type } = req.body;
+
+        const response = await axios.post(`${MINIMAX_API_BASE}/v1/get_voice`, {
+            voice_type: voice_type || 'all'
+        }, {
+            headers: {
+                'Authorization': `Bearer ${req.apiKey}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        res.json({
+            success: true,
+            data: response.data
+        });
+    } catch (error) {
+        console.error('Voice List Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.response?.data?.base_resp?.status_msg || error.response?.data?.message || error.message
+        });
+    }
+});
+
 // 图片生成
 app.post('/api/image/generate', validateApiKey, async (req, res) => {
     try {

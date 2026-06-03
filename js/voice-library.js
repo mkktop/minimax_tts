@@ -490,6 +490,96 @@ function initVoiceSelector() {
         const customVal = customVoiceInput ? customVoiceInput.value.trim() : '';
         return customVal || currentSelectedVoiceId;
     };
+
+    // ============ 加载远程自定义音色 ============
+    // 查询账号下的复刻音色和设计音色，合并到音色列表
+    async function loadRemoteVoices() {
+        const apiKey = localStorage.getItem('minimax_tts_api_key');
+        if (!apiKey) return;
+
+        try {
+            const response = await fetch('/api/voice/list', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': apiKey
+                },
+                body: JSON.stringify({ voice_type: 'all' })
+            });
+
+            if (!response.ok) return;
+            const result = await response.json();
+            if (!result.success || !result.data) return;
+
+            const data = result.data;
+            const remoteVoices = [];
+
+            // 复刻音色
+            if (data.voice_cloning && data.voice_cloning.length > 0) {
+                data.voice_cloning.forEach(v => {
+                    remoteVoices.push({
+                        id: v.voice_id,
+                        name: `🎭 ${v.voice_id}`,
+                        desc: v.description?.join(', ') || '复刻音色',
+                        type: 'clone',
+                        created: v.created_time
+                    });
+                });
+            }
+
+            // 设计音色
+            if (data.voice_generation && data.voice_generation.length > 0) {
+                data.voice_generation.forEach(v => {
+                    remoteVoices.push({
+                        id: v.voice_id,
+                        name: `🎨 ${v.voice_id}`,
+                        desc: v.description?.join(', ') || '设计音色',
+                        type: 'design',
+                        created: v.created_time
+                    });
+                });
+            }
+
+            if (remoteVoices.length === 0) return;
+
+            // 将远程音色合并到所有语言的列表顶部（作为通用音色）
+            // 同时添加一个 "我的音色" 虚拟分组
+            const myVoices = remoteVoices.map(v => ({ id: v.id, name: v.name }));
+
+            // 注入到当前语言的列表中
+            const currentLang = langSelect.value;
+            if (!VOICE_LIBRARY['我的音色']) {
+                VOICE_LIBRARY['我的音色'] = myVoices;
+            } else {
+                // 合并去重
+                const existingIds = new Set(VOICE_LIBRARY['我的音色'].map(v => v.id));
+                myVoices.forEach(v => {
+                    if (!existingIds.has(v.id)) {
+                        VOICE_LIBRARY['我的音色'].push(v);
+                    }
+                });
+            }
+
+            // 如果当前语言是第一个选项（中文），添加 "我的音色" 选项
+            const myOption = langSelect.querySelector('option[value="我的音色"]');
+            if (!myOption && remoteVoices.length > 0) {
+                const opt = document.createElement('option');
+                opt.value = '我的音色';
+                opt.textContent = '我的音色';
+                langSelect.insertBefore(opt, langSelect.firstChild);
+            }
+
+            // 保存远程音色到 localStorage 供其他页面使用
+            localStorage.setItem('remote_voices', JSON.stringify(remoteVoices));
+            localStorage.setItem('remote_voices_updated', Date.now().toString());
+
+        } catch (e) {
+            console.log('加载远程音色失败:', e.message);
+        }
+    }
+
+    // 尝试加载远程音色（不阻塞 UI）
+    loadRemoteVoices();
 }
 
 // DOM Ready 时自动初始化
