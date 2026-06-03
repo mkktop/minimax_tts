@@ -1034,19 +1034,27 @@ app.post('/api/music/lyrics', validateApiKey, async (req, res) => {
 // 翻唱前处理（提取音频特征和歌词）
 app.post('/api/music/cover/preprocess', validateApiKey, async (req, res) => {
     try {
-        const { model = 'music-cover', audio_url } = req.body;
+        const { model = 'music-cover', audio_url, audio_base64 } = req.body;
 
-        if (!audio_url) {
+        if (!audio_url && !audio_base64) {
             return res.status(400).json({
                 success: false,
-                error: 'audio_url 不能为空'
+                error: 'audio_url 或 audio_base64 必须提供其中一个'
             });
         }
 
-        const response = await axios.post(`${MINIMAX_API_BASE}/v1/music_cover_preprocess`, {
-            model,
-            audio_url
-        }, {
+        if (audio_url && audio_base64) {
+            return res.status(400).json({
+                success: false,
+                error: 'audio_url 和 audio_base64 只能二选一'
+            });
+        }
+
+        const payload = { model };
+        if (audio_url) payload.audio_url = audio_url;
+        if (audio_base64) payload.audio_base64 = audio_base64;
+
+        const response = await axios.post(`${MINIMAX_API_BASE}/v1/music_cover_preprocess`, payload, {
             headers: {
                 'Authorization': `Bearer ${req.apiKey}`,
                 'Content-Type': 'application/json'
