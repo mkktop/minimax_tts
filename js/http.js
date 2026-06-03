@@ -204,6 +204,20 @@ async function startSynthesis() {
     const vol = parseFloat(document.getElementById('volSlider').value);
     const sampleRate = parseInt(document.getElementById('sampleRateSelect').value);
     const format = document.getElementById('formatSelect').value;
+    const channel = parseInt(document.getElementById('channelSelect').value);
+    const emotion = document.getElementById('emotionSelect').value;
+    const languageBoost = document.getElementById('languageBoostSelect').value;
+    const pronunciationText = document.getElementById('pronunciationInput').value.trim();
+    const aigcWatermark = document.getElementById('aigcWatermark').checked;
+
+    // 解析发音字典
+    let pronunciationDict = undefined;
+    if (pronunciationText) {
+        const tones = pronunciationText.split('\n').map(l => l.trim()).filter(Boolean);
+        if (tones.length > 0) {
+            pronunciationDict = { tone: tones };
+        }
+    }
 
     // 显示状态
     const statusSection = document.getElementById('statusSection');
@@ -232,19 +246,23 @@ async function startSynthesis() {
             body: JSON.stringify({
                 model: model,
                 text: text,
+                output_format: 'hex',
+                aigc_watermark: aigcWatermark,
                 voice_setting: {
                     voice_id: voiceId,
                     speed: speed,
                     pitch: pitch,
                     vol: vol,
-                    english_normalization: false
+                    ...(emotion && { emotion })
                 },
                 audio_setting: {
                     sample_rate: sampleRate,
                     bitrate: 128000,
                     format: format,
-                    channel: 1
-                }
+                    channel: channel
+                },
+                ...(languageBoost && { language_boost: languageBoost }),
+                ...(pronunciationDict && { pronunciation_dict: pronunciationDict })
             })
         });
 

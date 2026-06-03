@@ -446,43 +446,92 @@ app.get('/api/languages', (req, res) => {
 // 同步合成（HTTP）- 创建任务
 app.post('/api/tts/http', validateApiKey, async (req, res) => {
     try {
-        const { model, text, voice_setting, audio_setting, text_file_id } = req.body;
+        const {
+            model = 'speech-2.8-hd',
+            text,
+            stream = false,
+            stream_options,
+            voice_setting,
+            audio_setting,
+            pronunciation_dict,
+            timbre_weights,
+            language_boost,
+            voice_modify,
+            subtitle_enable = false,
+            subtitle_type,
+            output_format = 'hex',
+            aigc_watermark = false,
+            text_file_id
+        } = req.body;
 
-        const payload = {
-            model: model || 'speech-2.8-hd',
-            voice_setting: voice_setting || {},
-            audio_setting: audio_setting || {
-                format: 'mp3',
-                bitrate: 128000,
-                sample_rate: 32000,
-                channel: 1
-            }
-        };
-
-        if (text_file_id) {
-            payload.text_file_id = text_file_id;
-        } else if (text) {
-            payload.text = text;
-        } else {
-            return res.status(400).json({ error: 'text or text_file_id is required' });
+        // 校验模型
+        const validModels = [
+            'speech-2.8-hd', 'speech-2.8-turbo',
+            'speech-2.6-hd', 'speech-2.6-turbo',
+            'speech-02-hd', 'speech-02-turbo',
+            'speech-01-hd', 'speech-01-turbo'
+        ];
+        if (!validModels.includes(model)) {
+            return res.status(400).json({
+                success: false,
+                error: `model 必须为: ${validModels.join(' / ')}`
+            });
         }
 
-        const response = await axios.post(`${MINIMAX_API_BASE}/v1/t2a_v2`, payload, {
+        // 校验 text
+        if (!text && !text_file_id) {
+            return res.status(400).json({ success: false, error: 'text 不能为空' });
+        }
+        if (text && text.length > 10000) {
+            return res.status(400).json({ success: false, error: 'text 长度不能超过 10000 字符' });
+        }
+
+        const payload = {
+            model,
+            stream,
+            voice_setting: voice_setting || { voice_id: 'male-qn-qingse', speed: 1, vol: 1, pitch: 0 },
+            audio_setting: audio_setting || { sample_rate: 32000, bitrate: 128000, format: 'mp3', channel: 1 },
+            subtitle_enable,
+            output_format,
+            aigc_watermark
+        };
+
+        if (text) payload.text = text;
+        if (text_file_id) payload.text_file_id = text_file_id;
+        if (stream_options) payload.stream_options = stream_options;
+        if (pronunciation_dict) payload.pronunciation_dict = pronunciation_dict;
+        if (timbre_weights && Array.isArray(timbre_weights)) payload.timbre_weights = timbre_weights;
+        if (language_boost) payload.language_boost = language_boost;
+        if (voice_modify) payload.voice_modify = voice_modify;
+        if (subtitle_type) payload.subtitle_type = subtitle_type;
+
+        const axiosOpts = {
             headers: {
                 'Authorization': `Bearer ${req.apiKey}`,
                 'Content-Type': 'application/json'
-            }
-        });
+            },
+            timeout: 120000
+        };
 
-        res.json({
-            success: true,
-            data: response.data
-        });
+        // 流式返回
+        if (stream) {
+            axiosOpts.responseType = 'stream';
+            const response = await axios.post(`${MINIMAX_API_BASE}/v1/t2a_v2`, payload, axiosOpts);
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+            response.data.pipe(res);
+            return;
+        }
+
+        const response = await axios.post(`${MINIMAX_API_BASE}/v1/t2a_v2`, payload, axiosOpts);
+        res.json({ success: true, data: response.data });
     } catch (error) {
         console.error('TTS HTTP Error:', error.message);
+        const errData = error.response?.data;
         res.status(500).json({
             success: false,
-            error: error.response?.data?.message || error.message
+            error: errData?.base_resp?.status_msg || errData?.message || error.message
         });
     }
 });
