@@ -43,25 +43,24 @@ function showAuthenticatedUI(user, hasApiKey) {
     const loginSection = document.getElementById('loginSection');
     const userDisplay = document.getElementById('userDisplay');
 
-    if (authSection) authSection.classList.remove('hidden');
-    if (loginSection) loginSection.classList.add('hidden');
+    // 用 style.display 直接控制，更可靠
+    if (authSection) authSection.style.display = 'flex';
+    if (loginSection) loginSection.style.display = 'none';
+    if (apiKeySection) apiKeySection.style.display = 'flex';
 
     if (userDisplay) {
         userDisplay.textContent = user.username;
     }
 
-    // 已登录时显示 API Key 状态（但不再弹窗）
-    if (apiKeySection) {
-        apiKeySection.classList.remove('hidden');
-        const apiKeyDisplay = document.getElementById('apiKeyDisplay');
-        if (apiKeyDisplay) {
-            if (hasApiKey) {
-                apiKeyDisplay.textContent = 'API Key 已设置 ✓';
-                apiKeyDisplay.classList.add('set');
-            } else {
-                apiKeyDisplay.textContent = '未设置 API Key';
-                apiKeyDisplay.classList.remove('set');
-            }
+    // 更新 API Key 显示文字
+    const apiKeyDisplay = document.getElementById('apiKeyDisplay');
+    if (apiKeyDisplay) {
+        if (hasApiKey) {
+            apiKeyDisplay.textContent = 'API Key 已设置 ✓';
+            apiKeyDisplay.classList.add('set');
+        } else {
+            apiKeyDisplay.textContent = '未设置 API Key';
+            apiKeyDisplay.classList.remove('set');
         }
     }
 }
@@ -74,9 +73,9 @@ function showGuestUI() {
     const apiKeySection = document.getElementById('apiKeySection');
     const loginSection = document.getElementById('loginSection');
 
-    if (authSection) authSection.classList.add('hidden');
-    if (apiKeySection) apiKeySection.classList.add('hidden');
-    if (loginSection) loginSection.classList.remove('hidden');
+    if (authSection) authSection.style.display = 'none';
+    if (apiKeySection) apiKeySection.style.display = 'none';
+    if (loginSection) loginSection.style.display = 'flex';
 }
 
 /**
@@ -316,21 +315,24 @@ async function handleRegister(e) {
  * 登出
  */
 async function logout() {
+    // 先更新 UI，不管 fetch 是否成功
+    window.currentUser = null;
+    window.hasApiKey = false;
+    showGuestUI();
+
     try {
         await fetch('/api/auth/logout', {
             method: 'POST',
             credentials: 'include'
         });
-        window.currentUser = null;
-        window.hasApiKey = false;
-        showGuestUI();
-        if (typeof showToast === 'function') {
-            showToast('已退出登录', 'success');
-        }
-        window.dispatchEvent(new CustomEvent('authChanged', { detail: { authenticated: false } }));
     } catch (err) {
-        console.error('[Auth] 登出失败:', err);
+        console.error('[Auth] 登出请求失败:', err);
     }
+
+    if (typeof showToast === 'function') {
+        showToast('已退出登录', 'success');
+    }
+    window.dispatchEvent(new CustomEvent('authChanged', { detail: { authenticated: false } }));
 }
 
 // ============ DOMContentLoaded ============
