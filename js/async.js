@@ -510,6 +510,37 @@ function updateStatus(type, text, detail) {
     statusDetail.textContent = detail || '';
 }
 
+function transferToStreaming() {
+    const text = document.getElementById('textInput').value.trim();
+    if (!text) {
+        showToast('请先输入文本', 'error');
+        return;
+    }
+    // 截取前 10000 字符（流式合成限制）
+    sessionStorage.setItem('tts_text', text.substring(0, 10000));
+    window.location.href = 'streaming.html?from=async';
+}
+
+function transferToCover() {
+    const text = document.getElementById('textInput').value.trim();
+    if (!text) {
+        showToast('请先输入文本', 'error');
+        return;
+    }
+    sessionStorage.setItem('tts_lyrics', text);
+    window.location.href = '../music/cover.html?from=tts';
+}
+
+function transferToLyrics() {
+    const text = document.getElementById('textInput').value.trim();
+    if (!text) {
+        showToast('请先输入文本', 'error');
+        return;
+    }
+    sessionStorage.setItem('lyrics_source', text);
+    window.location.href = '../music/lyrics.html?from=tts';
+}
+
 function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
     toast.textContent = message;

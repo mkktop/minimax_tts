@@ -405,4 +405,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (mode === 'img2img') {
         switchMode('img2img');
     }
+
+    // #3 联动：从音乐页传入封面 prompt
+    if (params.get('from') === 'music') {
+        const imagePrompt = sessionStorage.getItem('image_prompt');
+        if (imagePrompt) {
+            document.getElementById('promptInput').value = imagePrompt;
+            updateCharCount();
+            sessionStorage.removeItem('image_prompt');
+            showToast('已从音乐页导入封面设计提示', 'success');
+        }
+    }
 });

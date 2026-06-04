@@ -108,6 +108,7 @@
                                     <h4 style="margin: 0;">📝 生成结果</h4>
                                     <div style="display: flex; gap: 8px;">
                                         <button id="copyBtn" class="btn btn-secondary btn-sm">📋 复制</button>
+                                        <button id="coverBtn" class="btn btn-secondary btn-sm">🎤 用于翻唱</button>
                                         <button id="useBtn" class="btn btn-primary btn-sm">🎵 去生成音乐</button>
                                     </div>
                                 </div>
@@ -251,6 +252,30 @@
             sessionStorage.setItem('pending_lyrics', currentLyrics);
             window.location.href = 'generate.html?from=lyrics';
         });
+
+        // #4 联动：歌词 → 翻唱
+        document.getElementById('coverBtn').addEventListener('click', () => {
+            if (!currentLyrics) return;
+            sessionStorage.setItem('cover_lyrics', currentLyrics);
+            window.location.href = 'cover.html?from=lyrics';
+        });
+
+        // #5 联动：从 TTS 页面传入文本 → 切换到编辑模式
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('from') === 'tts') {
+            const lyricsSource = sessionStorage.getItem('lyrics_source');
+            if (lyricsSource) {
+                sessionStorage.removeItem('lyrics_source');
+                // 切换到编辑模式
+                document.getElementById('modeSelect').value = 'edit';
+                document.getElementById('promptLabel').textContent = '编辑指令';
+                document.getElementById('themeInput').placeholder = '例：改编为流行风格...';
+                document.getElementById('editLyricsSection').classList.remove('hidden');
+                // 填入文本
+                document.getElementById('editLyricsInput').value = lyricsSource;
+                showToast('已从语音合成页导入文本，可编辑后生成歌词', 'success');
+            }
+        }
     </script>
 </body>
 </html>

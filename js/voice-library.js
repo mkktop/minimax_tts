@@ -562,6 +562,21 @@ function initVoiceSelector() {
     // 初始化默认中文普通话
     loadVoicesForLanguage('中文（普通话）');
 
+    // 恢复从其他页面传来的选中音色（复刻/设计的「使用此音色」）
+    const transferredVoiceId = localStorage.getItem('selected_voice_id');
+    if (transferredVoiceId) {
+        localStorage.removeItem('selected_voice_id');
+        currentSelectedVoiceId = transferredVoiceId;
+        // 填入自定义音色输入框
+        if (customVoiceInput) {
+            customVoiceInput.value = transferredVoiceId;
+            if (selectedVoiceInfo && selectedVoiceText) {
+                selectedVoiceInfo.classList.remove('hidden');
+                selectedVoiceText.textContent = `自定义: ${transferredVoiceId}`;
+            }
+        }
+    }
+
     // 暴露获取当前选中的 voice_id
     window.getSelectedVoiceId = function() {
         const customVal = customVoiceInput ? customVoiceInput.value.trim() : '';

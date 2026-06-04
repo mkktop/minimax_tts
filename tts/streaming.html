@@ -326,10 +326,12 @@
                                 </div>
                             </div>
                             <textarea id="textInput" class="form-input" style="flex: 1; min-height: 200px;" placeholder="请输入要转换的文本...（最多 10,000 字符）&#10;&#10;支持停顿控制：<#1.5#> 表示停顿 1.5 秒&#10;支持语气词（2.8 模型）：(laughs) (sighs) (breath) 等"></textarea>
-                            <div style="margin-top: 16px;">
-                                <button id="synthBtn" class="btn btn-primary w-full" onclick="startSynthesis()">
+                            <div style="display: flex; gap: 8px; margin-top: 16px;">
+                                <button id="synthBtn" class="btn btn-primary" style="flex: 1;" onclick="startSynthesis()">
                                     🎤 开始合成（WebSocket）
                                 </button>
+                                <button class="btn btn-secondary" onclick="transferToCover()" title="将文本传到翻唱页作为歌词基础">🎵 翻唱</button>
+                                <button class="btn btn-secondary" onclick="transferToLyrics()" title="将文本传到歌词页进行改编">✍️ 歌词</button>
                             </div>
                         </div>
 

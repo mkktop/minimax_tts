@@ -313,10 +313,13 @@
                                     <input type="file" id="fileInput" style="display: none;" accept=".txt,.zip" onchange="handleFileUpload(event)">
                                 </div>
                             </div>
-                            <div style="margin-top: 16px;">
-                                <button id="synthBtn" class="btn btn-primary w-full" onclick="createTask()">
+                            <div style="display: flex; gap: 8px; margin-top: 16px;">
+                                <button id="synthBtn" class="btn btn-primary" style="flex: 1;" onclick="createTask()">
                                     ⏳ 创建任务
                                 </button>
+                                <button class="btn btn-secondary" onclick="transferToStreaming()" title="将文本传到流式合成页试听不同音色">🎧 试听</button>
+                                <button class="btn btn-secondary" onclick="transferToCover()" title="将文本传到翻唱页作为歌词基础">🎵 翻唱</button>
+                                <button class="btn btn-secondary" onclick="transferToLyrics()" title="将文本传到歌词页进行改编">✍️ 歌词</button>
                             </div>
                         </div>
 

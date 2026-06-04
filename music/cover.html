@@ -187,7 +187,10 @@
                             <div class="card">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                                     <h4 style="margin: 0;">🎉 翻唱生成成功</h4>
-                                    <button id="downloadBtn" class="btn btn-primary btn-sm">⬇ 下载</button>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button id="coverArtBtn" class="btn btn-secondary btn-sm" title="用当前翻唱风格生成专辑封面">🎨 生成封面</button>
+                                        <button id="downloadBtn" class="btn btn-primary btn-sm">⬇ 下载</button>
+                                    </div>
                                 </div>
                                 <audio id="audioPlayer" controls style="width: 100%;"></audio>
                                 <div id="coverMetaInfo" class="text-muted" style="font-size: 0.75rem; margin-top: 12px;"></div>
@@ -246,6 +249,41 @@
                 document.getElementById('quickSection').classList.toggle('hidden', currentMode !== 'quick');
                 document.getElementById('advancedSection').classList.toggle('hidden', currentMode !== 'advanced');
             });
+        });
+
+        // 跨页传值：从 TTS 或歌词页传入数据
+        document.addEventListener('DOMContentLoaded', function() {
+            const params = new URLSearchParams(window.location.search);
+
+            // 从 TTS 页面传入的文本 → 高级模式歌词编辑框
+            if (params.get('from') === 'tts') {
+                const ttsLyrics = sessionStorage.getItem('tts_lyrics');
+                if (ttsLyrics) {
+                    document.querySelectorAll('.model-option').forEach(o => o.classList.remove('selected'));
+                    document.querySelector('[data-mode="advanced"]').classList.add('selected');
+                    currentMode = 'advanced';
+                    document.getElementById('quickSection').classList.add('hidden');
+                    document.getElementById('advancedSection').classList.remove('hidden');
+                    document.getElementById('lyricsEditInput').value = ttsLyrics;
+                    sessionStorage.removeItem('tts_lyrics');
+                    showToast('已从语音合成页导入文本', 'success');
+                }
+            }
+
+            // 从歌词页传入的歌词 → 高级模式歌词编辑框
+            if (params.get('from') === 'lyrics') {
+                const coverLyrics = sessionStorage.getItem('cover_lyrics');
+                if (coverLyrics) {
+                    document.querySelectorAll('.model-option').forEach(o => o.classList.remove('selected'));
+                    document.querySelector('[data-mode="advanced"]').classList.add('selected');
+                    currentMode = 'advanced';
+                    document.getElementById('quickSection').classList.add('hidden');
+                    document.getElementById('advancedSection').classList.remove('hidden');
+                    document.getElementById('lyricsEditInput').value = coverLyrics;
+                    sessionStorage.removeItem('cover_lyrics');
+                    showToast('已从歌词生成页导入歌词', 'success');
+                }
+            }
         });
 
         // 预处理（提取音频特征和歌词）
@@ -421,6 +459,15 @@
             setStatus('翻唱生成成功！', '点击播放器试听', 'success');
             showToast('翻唱生成成功', 'success');
         }
+
+        // #3 联动：翻唱 → 专辑封面
+        document.getElementById('coverArtBtn').addEventListener('click', () => {
+            const styleEl = currentMode === 'quick' ? document.getElementById('styleInput') : document.getElementById('styleInput2');
+            const style = styleEl ? styleEl.value.trim() : '';
+            const prompt = `专辑封面设计，音乐风格：${style || '流行'}，现代艺术风格，高品质数字插画`;
+            sessionStorage.setItem('image_prompt', prompt);
+            window.location.href = '../image/generate.html?from=music';
+        });
     </script>
 </body>
 </html>

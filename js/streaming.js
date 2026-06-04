@@ -98,6 +98,19 @@ document.addEventListener('DOMContentLoaded', function() {
     initVoiceModifySliders();
     // 恢复设置
     loadSettings();
+
+    // #6 联动：从异步合成页传入文本
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('from') === 'async') {
+        const ttsText = sessionStorage.getItem('tts_text');
+        if (ttsText) {
+            document.getElementById('textInput').value = ttsText;
+            document.getElementById('textInput').dispatchEvent(new Event('input'));
+            sessionStorage.removeItem('tts_text');
+            showToast('已从异步合成页导入文本', 'success');
+        }
+    }
+
     // 监听变化自动保存
     ['speedSlider','pitchSlider','volSlider','sampleRateSelect','bitrateSelect',
      'formatSelect','channelSelect','emotionSelect','languageBoostSelect',
@@ -627,6 +640,26 @@ function downloadAudio() {
     URL.revokeObjectURL(url);
 
     showToast('开始下载: ' + filename, 'success');
+}
+
+function transferToCover() {
+    const text = document.getElementById('textInput').value.trim();
+    if (!text) {
+        showToast('请先输入文本', 'error');
+        return;
+    }
+    sessionStorage.setItem('tts_lyrics', text);
+    window.location.href = '../music/cover.html?from=tts';
+}
+
+function transferToLyrics() {
+    const text = document.getElementById('textInput').value.trim();
+    if (!text) {
+        showToast('请先输入文本', 'error');
+        return;
+    }
+    sessionStorage.setItem('lyrics_source', text);
+    window.location.href = '../music/lyrics.html?from=tts';
 }
 
 function showToast(message, type = 'success') {

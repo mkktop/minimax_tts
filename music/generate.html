@@ -162,7 +162,10 @@
                             <div class="card">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                                     <h4 style="margin: 0;">🎉 生成成功</h4>
-                                    <button id="downloadBtn" class="btn btn-primary btn-sm">⬇ 下载音频</button>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button id="coverArtBtn" class="btn btn-secondary btn-sm" title="用当前音乐风格生成专辑封面">🎨 生成封面</button>
+                                        <button id="downloadBtn" class="btn btn-primary btn-sm">⬇ 下载音频</button>
+                                    </div>
                                 </div>
                                 <div id="audioPlayerWrap">
                                     <audio id="audioPlayer" controls style="width: 100%;"></audio>
@@ -374,6 +377,18 @@
                 sessionStorage.removeItem('pending_lyrics');
             }
         }
+
+        // #3 联动：音乐生成 → 专辑封面
+        document.getElementById('coverArtBtn').addEventListener('click', () => {
+            const style = document.getElementById('promptInput').value.trim();
+            if (!style) {
+                showToast('无风格信息可传递', 'error');
+                return;
+            }
+            const prompt = `专辑封面设计，音乐风格：${style}，现代艺术风格，高品质数字插画`;
+            sessionStorage.setItem('image_prompt', prompt);
+            window.location.href = '../image/generate.html?from=music';
+        });
     </script>
 </body>
 </html>

@@ -409,6 +409,26 @@ function downloadAudio() {
     showToast('开始下载: ' + filename, 'success');
 }
 
+function transferToCover() {
+    const text = document.getElementById('textInput').value.trim();
+    if (!text) {
+        showToast('请先输入文本', 'error');
+        return;
+    }
+    sessionStorage.setItem('tts_lyrics', text);
+    window.location.href = '../music/cover.html?from=tts';
+}
+
+function transferToLyrics() {
+    const text = document.getElementById('textInput').value.trim();
+    if (!text) {
+        showToast('请先输入文本', 'error');
+        return;
+    }
+    sessionStorage.setItem('lyrics_source', text);
+    window.location.href = '../music/lyrics.html?from=tts';
+}
+
 function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
     toast.textContent = message;
