@@ -22,12 +22,14 @@ function initResourceHistory(type) {
     // 找到容器（HTML 中已预置，或自动创建）
     historyContainer = document.getElementById('resourceHistory');
     if (!historyContainer) {
+        // 优先放进 .output-panel（与"开始合成"按钮同列）
         const outputPanel = document.querySelector('.output-panel');
         if (outputPanel) {
             const div = document.createElement('div');
             div.id = 'resourceHistory';
             div.className = 'resource-history';
-            outputPanel.parentElement.insertBefore(div, outputPanel.nextSibling);
+            div.style.marginTop = '24px';
+            outputPanel.appendChild(div);
             historyContainer = div;
         } else {
             const workArea = document.querySelector('.work-area');
