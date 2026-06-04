@@ -122,11 +122,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initApiKey() {
-    const key = getApiKey();
     updateApiKeyDisplay();
-    if (!key) {
-        showApiKeyModal();
-    }
 }
 
 // API Key 管理由 api-key.js 统一提供
@@ -221,11 +217,10 @@ function handleFileUpload(event) {
 
 // 创建任务
 async function createTask() {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-        showApiKeyModal();
+    if (!ensureApiKey()) {
         return;
     }
+    const apiKey = getApiKey();
 
     const text = document.getElementById('textInput').value.trim();
     if (!text) {
@@ -353,11 +348,10 @@ async function createTask() {
 
 // 查询任务状态
 async function queryTask() {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-        showApiKeyModal();
+    if (!ensureApiKey()) {
         return;
     }
+    const apiKey = getApiKey();
 
     const taskId = document.getElementById('taskIdInput').value.trim();
     if (!taskId) {

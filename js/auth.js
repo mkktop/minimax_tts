@@ -50,19 +50,15 @@ function showAuthenticatedUI(user, hasApiKey) {
         userDisplay.textContent = user.username;
     }
 
-    // 如果没有 API Key，显示设置按钮
+    // 已登录时显示 API Key 状态（但不再弹窗）
     if (apiKeySection) {
-        if (hasApiKey) {
-            apiKeySection.classList.remove('hidden');
-            const apiKeyDisplay = document.getElementById('apiKeyDisplay');
-            if (apiKeyDisplay) {
+        apiKeySection.classList.remove('hidden');
+        const apiKeyDisplay = document.getElementById('apiKeyDisplay');
+        if (apiKeyDisplay) {
+            if (hasApiKey) {
                 apiKeyDisplay.textContent = 'API Key 已设置 ✓';
                 apiKeyDisplay.classList.add('set');
-            }
-        } else {
-            apiKeySection.classList.remove('hidden');
-            const apiKeyDisplay = document.getElementById('apiKeyDisplay');
-            if (apiKeyDisplay) {
+            } else {
                 apiKeyDisplay.textContent = '未设置 API Key';
                 apiKeyDisplay.classList.remove('set');
             }
@@ -103,7 +99,6 @@ async function migrateLocalApiKey() {
             if (typeof showToast === 'function') {
                 showToast('API Key 已安全保存到您的账户', 'success');
             }
-            // 刷新 UI
             showAuthenticatedUI(window.currentUser, true);
         }
     } catch (err) {
@@ -117,16 +112,13 @@ async function migrateLocalApiKey() {
  * 显示登录弹窗
  */
 function showLoginModal() {
-    // 如果弹窗已存在，直接显示
     let modal = document.getElementById('loginModal');
     if (!modal) {
         createLoginModal();
         modal = document.getElementById('loginModal');
     }
     modal.classList.remove('hidden');
-    // 默认显示登录 tab
     switchLoginTab('login');
-    // 聚焦到用户名输入框
     setTimeout(() => {
         const input = document.getElementById('loginUsername');
         if (input) input.focus();
@@ -151,19 +143,13 @@ function createLoginModal() {
     modal.innerHTML = `
         <div class="login-modal-overlay" onclick="hideLoginModal()"></div>
         <div class="login-modal-content">
-            <button class="login-modal-close" onclick="hideLoginModal()">✕</button>
-            <h2 class="login-modal-title">🎙️ MiniMax Studio</h2>
-
-            <!-- Tab 切换 -->
+            <button class="login-modal-close" onclick="hideLoginModal()">&#10005;</button>
+            <h2 class="login-modal-title">&#127908; MiniMax Studio</h2>
             <div class="login-tabs">
                 <button class="login-tab active" data-tab="login" onclick="switchLoginTab('login')">登录</button>
                 <button class="login-tab" data-tab="register" onclick="switchLoginTab('register')">注册</button>
             </div>
-
-            <!-- 错误提示 -->
             <div id="loginError" class="login-error hidden"></div>
-
-            <!-- 登录表单 -->
             <form id="loginForm" class="login-form" onsubmit="handleLogin(event)">
                 <div class="login-field">
                     <label for="loginUsername">用户名</label>
@@ -175,8 +161,6 @@ function createLoginModal() {
                 </div>
                 <button type="submit" class="login-submit" id="loginSubmitBtn">登录</button>
             </form>
-
-            <!-- 注册表单 -->
             <form id="registerForm" class="login-form hidden" onsubmit="handleRegister(event)">
                 <div class="login-field">
                     <label for="regUsername">用户名</label>
@@ -203,11 +187,9 @@ function createLoginModal() {
 function switchLoginTab(tab) {
     const tabs = document.querySelectorAll('.login-tab');
     tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
     const error = document.getElementById('loginError');
-
     if (loginForm) loginForm.classList.toggle('hidden', tab !== 'login');
     if (registerForm) registerForm.classList.toggle('hidden', tab !== 'register');
     if (error) error.classList.add('hidden');
@@ -259,9 +241,8 @@ async function handleLogin(e) {
             showAuthenticatedUI(data.user, data.hasApiKey);
             await migrateLocalApiKey();
             if (typeof showToast === 'function') {
-                showToast(`欢迎回来，${data.user.username}！`, 'success');
+                showToast('欢迎回来，' + data.user.username + '！', 'success');
             }
-            // 触发自定义事件，让其他模块可以响应
             window.dispatchEvent(new CustomEvent('authChanged', { detail: data }));
         } else {
             showLoginError(data.error || '登录失败');
@@ -313,9 +294,9 @@ async function handleRegister(e) {
             hideLoginModal();
             showAuthenticatedUI(data.user, false);
             if (typeof showToast === 'function') {
-                showToast(`注册成功！请设置 API Key 开始使用`, 'success');
+                showToast('注册成功！请设置 API Key 开始使用', 'success');
             }
-            // 自动弹出 API Key 设置
+            // 注册后自动弹出 API Key 设置
             if (typeof showApiKeyModal === 'function') {
                 setTimeout(() => showApiKeyModal(), 500);
             }
@@ -353,7 +334,6 @@ async function logout() {
 }
 
 // ============ DOMContentLoaded ============
-
 document.addEventListener('DOMContentLoaded', function() {
     checkAuth();
 });

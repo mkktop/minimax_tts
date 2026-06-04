@@ -58,11 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initApiKey() {
-    const key = getApiKey();
     updateApiKeyDisplay();
-    if (!key) {
-        showApiKeyModal();
-    }
 }
 
 // API Key 管理由 api-key.js 统一提供
@@ -243,11 +239,10 @@ function validateVoiceId(voiceId) {
 
 // 开始复刻
 async function startClone() {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-        showApiKeyModal();
+    if (!ensureApiKey()) {
         return;
     }
+    const apiKey = getApiKey();
 
     if (!cloneAudioFile) {
         showToast('请上传克隆音频', 'error');

@@ -125,11 +125,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initApiKey() {
-    const key = getApiKey();
     updateApiKeyDisplay();
-    if (!key) {
-        showApiKeyModal();
-    }
 }
 
 // API Key 管理由 api-key.js 统一提供
@@ -225,11 +221,10 @@ function formatTime(seconds) {
 // ============ WebSocket 流式合成核心 ============
 
 async function startSynthesis() {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-        showApiKeyModal();
+    if (!ensureApiKey()) {
         return;
     }
+    const apiKey = getApiKey();
 
     const text = document.getElementById('textInput').value.trim();
     if (!text) {

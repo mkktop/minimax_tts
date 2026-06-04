@@ -183,12 +183,10 @@ async function generateImage() {
         return;
     }
 
-    const apiKey = getApiKey();
-    if (!apiKey) {
-        showApiKeyModal();
-        showToast('请先设置 API Key', 'error');
+    if (!ensureApiKey()) {
         return;
     }
+    const apiKey = getApiKey();
 
     const aspectSel = document.querySelector('#aspectRatioSelect .custom-select-value');
     const aspectRatio = aspectSel ? aspectSel.dataset.value : '1:1';

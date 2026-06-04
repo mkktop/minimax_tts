@@ -78,9 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initApiKey() {
-    const key = getApiKey();
     updateApiKeyDisplay();
-    if (!key) showApiKeyModal();
 }
 
 // API Key 管理由 api-key.js 统一提供
@@ -129,11 +127,10 @@ function applyTemplate(name) {
 
 // 开始设计
 async function startDesign() {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-        showApiKeyModal();
+    if (!ensureApiKey()) {
         return;
     }
+    const apiKey = getApiKey();
 
     const prompt = document.getElementById('promptInput').value.trim();
     if (!prompt) {
