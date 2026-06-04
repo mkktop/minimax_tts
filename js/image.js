@@ -2,7 +2,7 @@
  * 文生图功能
  */
 
-const API_KEY_STORAGE = 'minimax_tts_api_key';
+// API Key 管理由 api-key.js 统一提供
 let selectedModel = 'image-01';
 let currentMode = 'text2img'; // 'text2img' or 'img2img'
 let refImageData = null; // { dataUrl, size, type }
@@ -39,47 +39,6 @@ const STYLE_TYPES = [
 ];
 
 // ============ 工具函数 ============
-function getApiKey() {
-    return localStorage.getItem(API_KEY_STORAGE) || '';
-}
-
-function setApiKey(key) {
-    localStorage.setItem(API_KEY_STORAGE, key);
-    updateApiKeyDisplay();
-}
-
-function updateApiKeyDisplay() {
-    const key = getApiKey();
-    const display = document.getElementById('apiKeyDisplay');
-    if (key) {
-        display.textContent = '****' + key.slice(-6);
-        display.classList.add('set');
-    } else {
-        display.textContent = '未设置 API Key';
-        display.classList.remove('set');
-    }
-}
-
-function showApiKeyModal() {
-    const modal = document.getElementById('apiKeyModal');
-    document.getElementById('apiKeyInput').value = getApiKey();
-    modal.classList.remove('hidden');
-}
-
-function hideApiKeyModal() {
-    document.getElementById('apiKeyModal').classList.add('hidden');
-}
-
-function saveApiKey() {
-    const key = document.getElementById('apiKeyInput').value.trim();
-    if (key) {
-        setApiKey(key);
-        hideApiKeyModal();
-        showToast('API Key 保存成功', 'success');
-    } else {
-        showToast('请输入有效的 API Key', 'error');
-    }
-}
 
 function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');

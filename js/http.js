@@ -3,52 +3,7 @@
  * 完整音频一次返回，简单可靠
  */
 
-// 音色数据
-const VOICES_DATA = {
-    '中文（普通话）': [
-        { id: 'male-qn-qingse', name: '青涩青年音色' },
-        { id: 'male-qn-jingying', name: '精英青年音色' },
-        { id: 'male-qn-badao', name: '霸道青年音色' },
-        { id: 'male-qn-daxuesheng', name: '青年大学生音色' },
-        { id: 'female-shaonv', name: '少女音色' },
-        { id: 'female-yujie', name: '御姐音色' },
-        { id: 'female-chengshu', name: '成熟女性音色' },
-        { id: 'female-tianmei', name: '甜美女性音色' },
-        { id: 'male-qn-qingse-jingpin', name: '青涩青年音色-beta' },
-        { id: 'male-qn-jingying-jingpin', name: '精英青年音色-beta' }
-    ],
-    '中文（粤语）': [
-        { id: 'Cantonese_ProfessionalHost（F）', name: '专业女主持' },
-        { id: 'Cantonese_GentleLady', name: '温柔女声' },
-        { id: 'Cantonese_PlayfulMan', name: '活泼男声' },
-        { id: 'Cantonese_CuteGirl', name: '可爱女孩' }
-    ],
-    '英文': [
-        { id: 'Santa_Claus', name: 'Santa Claus' },
-        { id: 'Grinch', name: 'Grinch' },
-        { id: 'Arnold', name: 'Arnold' },
-        { id: 'Sweet_Girl', name: 'Sweet Girl' },
-        { id: 'Attractive_Girl', name: 'Attractive Girl' }
-    ],
-    '日文': [
-        { id: 'Japanese_IntellectualSenior', name: 'Intellectual Senior' },
-        { id: 'Japanese_DecisivePrincess', name: 'Decisive Princess' },
-        { id: 'Japanese_LoyalKnight', name: 'Loyal Knight' }
-    ],
-    '韩文': [
-        { id: 'Korean_SweetGirl', name: 'Sweet Girl' },
-        { id: 'Korean_CheerfulBoyfriend', name: 'Cheerful Boyfriend' },
-        { id: 'Korean_EnchantingSister', name: 'Enchanting Sister' }
-    ],
-    '西班牙文': [
-        { id: 'Spanish_SereneWoman', name: 'Serene Woman' },
-        { id: 'Spanish_Narrator', name: 'Narrator' },
-        { id: 'Spanish_WiseScholar', name: 'Wise Scholar' }
-    ],
-    '其他': []
-};
-
-const OTHER_LANGUAGES = ['葡萄牙文', '法文', '印尼文', '德文', '俄文', '意大利文', '阿拉伯文', '土耳其文', '越南文', '泰文'];
+// 音色数据由 voice-library.js 统一提供（VOICE_LIBRARY）
 
 // 状态变量
 let audioElement = null;
@@ -65,10 +20,15 @@ function saveSettings() {
         pitch: document.getElementById('pitchSlider').value,
         vol: document.getElementById('volSlider').value,
         sampleRate: document.getElementById('sampleRateSelect').value,
+        bitrate: document.getElementById('bitrateSelect').value,
         format: document.getElementById('formatSelect').value,
         emotion: document.getElementById('emotionSelect').value,
         languageBoost: document.getElementById('languageBoostSelect').value,
         pronunciation: document.getElementById('pronunciationInput').value,
+        modifyPitch: document.getElementById('modifyPitchSlider').value,
+        modifyIntensity: document.getElementById('modifyIntensitySlider').value,
+        modifyTimbre: document.getElementById('modifyTimbreSlider').value,
+        soundEffects: document.getElementById('soundEffectsSelect').value,
         aigcWatermark: document.getElementById('aigcWatermark').checked,
         text: document.getElementById('textInput').value
     };
@@ -94,10 +54,24 @@ function loadSettings() {
         if (s.vol != null) { document.getElementById('volSlider').value = s.vol; document.getElementById('volValue').textContent = s.vol; }
         // 下拉
         if (s.sampleRate) document.getElementById('sampleRateSelect').value = s.sampleRate;
+        if (s.bitrate) document.getElementById('bitrateSelect').value = s.bitrate;
         if (s.format) document.getElementById('formatSelect').value = s.format;
         if (s.emotion) document.getElementById('emotionSelect').value = s.emotion;
         if (s.languageBoost != null) document.getElementById('languageBoostSelect').value = s.languageBoost;
         if (s.pronunciation) document.getElementById('pronunciationInput').value = s.pronunciation;
+        if (s.modifyPitch != null) {
+            document.getElementById('modifyPitchSlider').value = s.modifyPitch;
+            document.getElementById('modifyPitchValue').textContent = s.modifyPitch;
+        }
+        if (s.modifyIntensity != null) {
+            document.getElementById('modifyIntensitySlider').value = s.modifyIntensity;
+            document.getElementById('modifyIntensityValue').textContent = s.modifyIntensity;
+        }
+        if (s.modifyTimbre != null) {
+            document.getElementById('modifyTimbreSlider').value = s.modifyTimbre;
+            document.getElementById('modifyTimbreValue').textContent = s.modifyTimbre;
+        }
+        if (s.soundEffects) document.getElementById('soundEffectsSelect').value = s.soundEffects;
         if (s.aigcWatermark) document.getElementById('aigcWatermark').checked = true;
         // 文本
         if (s.text) {
@@ -118,8 +92,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // 恢复设置
     loadSettings();
     // 监听变化自动保存
-    ['speedSlider','pitchSlider','volSlider','sampleRateSelect','formatSelect',
-     'emotionSelect','languageBoostSelect','pronunciationInput','aigcWatermark','textInput'].forEach(id => {
+    ['speedSlider','pitchSlider','volSlider','sampleRateSelect','bitrateSelect','formatSelect',
+     'emotionSelect','languageBoostSelect','pronunciationInput',
+     'modifyPitchSlider','modifyIntensitySlider','modifyTimbreSlider','soundEffectsSelect',
+     'aigcWatermark','textInput'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', saveSettings);
         if (el) el.addEventListener('input', () => { clearTimeout(el._saveTimer); el._saveTimer = setTimeout(saveSettings, 500); });
@@ -134,45 +110,7 @@ function initApiKey() {
     }
 }
 
-function getApiKey() {
-    return localStorage.getItem('minimax_tts_api_key') || '';
-}
-
-function updateApiKeyDisplay() {
-    const key = getApiKey();
-    const display = document.getElementById('apiKeyDisplay');
-    if (key) {
-        display.textContent = '****' + key.slice(-6);
-        display.classList.add('set');
-    } else {
-        display.textContent = '未设置 API Key';
-        display.classList.remove('set');
-    }
-}
-
-function showApiKeyModal() {
-    const modal = document.getElementById('apiKeyModal');
-    const input = document.getElementById('apiKeyInput');
-    input.value = getApiKey();
-    modal.classList.remove('hidden');
-}
-
-function hideApiKeyModal() {
-    document.getElementById('apiKeyModal').classList.add('hidden');
-}
-
-function saveApiKey() {
-    const input = document.getElementById('apiKeyInput');
-    const key = input.value.trim();
-    if (key) {
-        localStorage.setItem('minimax_tts_api_key', key);
-        updateApiKeyDisplay();
-        hideApiKeyModal();
-        showToast('API Key 保存成功', 'success');
-    } else {
-        showToast('请输入有效的 API Key', 'error');
-    }
-}
+// API Key 管理由 api-key.js 统一提供
 
 function initModelSelection() {
     const options = document.querySelectorAll('.model-option');
@@ -194,7 +132,10 @@ function initSliders() {
     const sliders = [
         { id: 'speedSlider', valueId: 'speedValue', format: v => v + 'x' },
         { id: 'pitchSlider', valueId: 'pitchValue', format: v => v },
-        { id: 'volSlider', valueId: 'volValue', format: v => v }
+        { id: 'volSlider', valueId: 'volValue', format: v => v },
+        { id: 'modifyPitchSlider', valueId: 'modifyPitchValue', format: v => v },
+        { id: 'modifyIntensitySlider', valueId: 'modifyIntensityValue', format: v => v },
+        { id: 'modifyTimbreSlider', valueId: 'modifyTimbreValue', format: v => v }
     ];
 
     sliders.forEach(({ id, valueId, format }) => {
@@ -265,12 +206,29 @@ async function startSynthesis() {
     const pitch = parseInt(document.getElementById('pitchSlider').value);
     const vol = parseFloat(document.getElementById('volSlider').value);
     const sampleRate = parseInt(document.getElementById('sampleRateSelect').value);
+    const bitrate = parseInt(document.getElementById('bitrateSelect').value);
     const format = document.getElementById('formatSelect').value;
     const channel = parseInt(document.getElementById('channelSelect').value);
     const emotion = document.getElementById('emotionSelect').value;
     const languageBoost = document.getElementById('languageBoostSelect').value;
     const pronunciationText = document.getElementById('pronunciationInput').value.trim();
     const aigcWatermark = document.getElementById('aigcWatermark').checked;
+
+    // 语音修改参数
+    const modifyPitch = parseInt(document.getElementById('modifyPitchSlider').value);
+    const modifyIntensity = parseInt(document.getElementById('modifyIntensitySlider').value);
+    const modifyTimbre = parseInt(document.getElementById('modifyTimbreSlider').value);
+    const soundEffects = document.getElementById('soundEffectsSelect').value;
+
+    // 构建 voice_modify（有非零值时才发送）
+    let voiceModify = undefined;
+    if (modifyPitch !== 0 || modifyIntensity !== 0 || modifyTimbre !== 0 || soundEffects) {
+        voiceModify = {};
+        if (modifyPitch !== 0) voiceModify.pitch = modifyPitch;
+        if (modifyIntensity !== 0) voiceModify.intensity = modifyIntensity;
+        if (modifyTimbre !== 0) voiceModify.timbre = modifyTimbre;
+        if (soundEffects) voiceModify.sound_effects = soundEffects;
+    }
 
     // 解析发音字典
     let pronunciationDict = undefined;
@@ -319,12 +277,13 @@ async function startSynthesis() {
                 },
                 audio_setting: {
                     sample_rate: sampleRate,
-                    bitrate: 128000,
+                    bitrate: bitrate,
                     format: format,
                     channel: channel
                 },
                 ...(languageBoost && { language_boost: languageBoost }),
-                ...(pronunciationDict && { pronunciation_dict: pronunciationDict })
+                ...(pronunciationDict && { pronunciation_dict: pronunciationDict }),
+                ...(voiceModify && { voice_modify: voiceModify })
             })
         });
 
@@ -345,7 +304,7 @@ async function startSynthesis() {
                 audioBytes[i / 2] = parseInt(hexString.substr(i, 2), 16);
             }
 
-            const mimeType = format === 'wav' ? 'audio/wav' : format === 'ogg' ? 'audio/ogg' : 'audio/mpeg';
+            const mimeType = format === 'wav' ? 'audio/wav' : format === 'flac' ? 'audio/flac' : format === 'pcm' ? 'audio/pcm' : format === 'opus' || format === 'ogg' ? 'audio/ogg' : 'audio/mpeg';
             audioBlob = new Blob([audioBytes], { type: mimeType });
         } else {
             // 兜底：直接处理二进制
@@ -436,7 +395,8 @@ function downloadAudio() {
     }
 
     const format = document.getElementById('formatSelect').value;
-    const ext = format === 'mp3' ? 'mp3' : format === 'wav' ? 'wav' : 'ogg';
+    const extMap = { mp3: 'mp3', wav: 'wav', ogg: 'ogg', opus: 'ogg', flac: 'flac', pcm: 'pcm', pcmu_raw: 'ulaw', pcmu_wav: 'ulaw.wav' };
+    const ext = extMap[format] || 'mp3';
     const filename = `minimax_tts_${Date.now()}.${ext}`;
 
     const url = URL.createObjectURL(audioBlob);

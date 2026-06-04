@@ -19,7 +19,7 @@
                 <a href="generate.html" class="nav-link">音乐生成</a>
                 <a href="lyrics.html" class="nav-link">歌词生成</a>
                 <a href="cover.html" class="nav-link active">翻唱生成</a>
-                <a href="../tts/streaming.html" class="nav-link">语音生成</a>
+                <a href="../tts/" class="nav-link">语音生成</a>
                 <a href="../image/" class="nav-link">图片生成</a>
             </nav>
             <div class="header-actions">
@@ -78,6 +78,7 @@
                                     <option value="24000">24000 Hz</option>
                                     <option value="32000">32000 Hz</option>
                                     <option value="44100" selected>44100 Hz</option>
+                                    <option value="48000">48000 Hz</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -86,6 +87,14 @@
                                     <option value="128000">128 kbps</option>
                                     <option value="192000">192 kbps</option>
                                     <option value="256000" selected>256 kbps</option>
+                                    <option value="320000">320 kbps</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">格式</label>
+                                <select id="formatSelect" class="form-input">
+                                    <option value="mp3" selected>MP3</option>
+                                    <option value="wav">WAV</option>
                                 </select>
                             </div>
                         </div>
@@ -206,6 +215,7 @@
 
     <div id="toast" class="toast hidden"></div>
 
+    <script src="../js/api-key.js"></script>
     <script src="../js/music.js"></script>
     <script src="../js/custom-select.js"></script>
     <script>
@@ -265,7 +275,7 @@
                         'x-api-key': apiKey
                     },
                     body: JSON.stringify({
-                        model: 'music-cover',
+                        model: coverModel,
                         audio_url: audioUrl
                     })
                 });
@@ -314,7 +324,7 @@
             const audioSetting = {
                 sample_rate: parseInt(document.getElementById('sampleRateSelect').value),
                 bitrate: parseInt(document.getElementById('bitrateSelect').value),
-                format: 'mp3'
+                format: document.getElementById('formatSelect').value
             };
 
             let payload;
@@ -375,7 +385,8 @@
                     for (let i = 0; i < audioData.length; i += 2) {
                         bytes[i / 2] = parseInt(audioData.substr(i, 2), 16);
                     }
-                    const blob = new Blob([bytes], { type: 'audio/mpeg' });
+                    const mimeType = document.getElementById('formatSelect').value === 'wav' ? 'audio/wav' : 'audio/mpeg';
+                    const blob = new Blob([bytes], { type: mimeType });
                     blobUrl = URL.createObjectURL(blob);
                 }
             }
@@ -402,7 +413,7 @@
             document.getElementById('downloadBtn').onclick = () => {
                 const a = document.createElement('a');
                 a.href = blobUrl;
-                a.download = `minimax_cover_${Date.now()}.mp3`;
+                a.download = `minimax_cover_${Date.now()}.${document.getElementById('formatSelect').value}`;
                 a.click();
                 showToast('已开始下载', 'success');
             };

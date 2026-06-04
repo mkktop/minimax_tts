@@ -173,51 +173,8 @@
     <!-- Toast -->
     <div id="toast" class="toast hidden"></div>
 
+    <script src="js/api-key.js"></script>
     <script>
-        const API_KEY_STORAGE = 'minimax_tts_api_key';
-
-        function getApiKey() {
-            return localStorage.getItem(API_KEY_STORAGE) || '';
-        }
-
-        function setApiKey(key) {
-            localStorage.setItem(API_KEY_STORAGE, key);
-            updateApiKeyDisplay();
-        }
-
-        function updateApiKeyDisplay() {
-            const key = getApiKey();
-            const display = document.getElementById('apiKeyDisplay');
-            if (key) {
-                display.textContent = '****' + key.slice(-6);
-                display.classList.add('set');
-            } else {
-                display.textContent = '未设置 API Key';
-                display.classList.remove('set');
-            }
-        }
-
-        function showApiKeyModal() {
-            const modal = document.getElementById('apiKeyModal');
-            document.getElementById('apiKeyInput').value = getApiKey();
-            modal.classList.remove('hidden');
-        }
-
-        function hideApiKeyModal() {
-            document.getElementById('apiKeyModal').classList.add('hidden');
-        }
-
-        function saveApiKey() {
-            const key = document.getElementById('apiKeyInput').value.trim();
-            if (key) {
-                setApiKey(key);
-                hideApiKeyModal();
-                showToast('API Key 保存成功', 'success');
-            } else {
-                showToast('请输入有效的 API Key', 'error');
-            }
-        }
-
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
             toast.textContent = message;

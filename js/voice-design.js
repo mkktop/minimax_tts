@@ -83,45 +83,7 @@ function initApiKey() {
     if (!key) showApiKeyModal();
 }
 
-function getApiKey() {
-    return localStorage.getItem('minimax_tts_api_key') || '';
-}
-
-function updateApiKeyDisplay() {
-    const key = getApiKey();
-    const display = document.getElementById('apiKeyDisplay');
-    if (key) {
-        display.textContent = '****' + key.slice(-6);
-        display.classList.add('set');
-    } else {
-        display.textContent = '未设置 API Key';
-        display.classList.remove('set');
-    }
-}
-
-function showApiKeyModal() {
-    const modal = document.getElementById('apiKeyModal');
-    const input = document.getElementById('apiKeyInput');
-    input.value = getApiKey();
-    modal.classList.remove('hidden');
-}
-
-function hideApiKeyModal() {
-    document.getElementById('apiKeyModal').classList.add('hidden');
-}
-
-function saveApiKey() {
-    const input = document.getElementById('apiKeyInput');
-    const key = input.value.trim();
-    if (key) {
-        localStorage.setItem('minimax_tts_api_key', key);
-        updateApiKeyDisplay();
-        hideApiKeyModal();
-        showToast('API Key 保存成功', 'success');
-    } else {
-        showToast('请输入有效的 API Key', 'error');
-    }
-}
+// API Key 管理由 api-key.js 统一提供
 
 function initAudioPlayer() {
     audioElement = document.getElementById('audioElement');

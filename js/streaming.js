@@ -4,52 +4,7 @@
  * 协议流程：task_start → task_continue(text) → task_finish
  */
 
-// 音色数据
-const VOICES_DATA = {
-    '中文（普通话）': [
-        { id: 'male-qn-qingse', name: '青涩青年音色' },
-        { id: 'male-qn-jingying', name: '精英青年音色' },
-        { id: 'male-qn-badao', name: '霸道青年音色' },
-        { id: 'male-qn-daxuesheng', name: '青年大学生音色' },
-        { id: 'female-shaonv', name: '少女音色' },
-        { id: 'female-yujie', name: '御姐音色' },
-        { id: 'female-chengshu', name: '成熟女性音色' },
-        { id: 'female-tianmei', name: '甜美女性音色' },
-        { id: 'male-qn-qingse-jingpin', name: '青涩青年音色-beta' },
-        { id: 'male-qn-jingying-jingpin', name: '精英青年音色-beta' }
-    ],
-    '中文（粤语）': [
-        { id: 'Cantonese_ProfessionalHost（F）', name: '专业女主持' },
-        { id: 'Cantonese_GentleLady', name: '温柔女声' },
-        { id: 'Cantonese_PlayfulMan', name: '活泼男声' },
-        { id: 'Cantonese_CuteGirl', name: '可爱女孩' }
-    ],
-    '英文': [
-        { id: 'Santa_Claus', name: 'Santa Claus' },
-        { id: 'Grinch', name: 'Grinch' },
-        { id: 'Arnold', name: 'Arnold' },
-        { id: 'Sweet_Girl', name: 'Sweet Girl' },
-        { id: 'Attractive_Girl', name: 'Attractive Girl' }
-    ],
-    '日文': [
-        { id: 'Japanese_IntellectualSenior', name: 'Intellectual Senior' },
-        { id: 'Japanese_DecisivePrincess', name: 'Decisive Princess' },
-        { id: 'Japanese_LoyalKnight', name: 'Loyal Knight' }
-    ],
-    '韩文': [
-        { id: 'Korean_SweetGirl', name: 'Sweet Girl' },
-        { id: 'Korean_CheerfulBoyfriend', name: 'Cheerful Boyfriend' },
-        { id: 'Korean_EnchantingSister', name: 'Enchanting Sister' }
-    ],
-    '西班牙文': [
-        { id: 'Spanish_SereneWoman', name: 'Serene Woman' },
-        { id: 'Spanish_Narrator', name: 'Narrator' },
-        { id: 'Spanish_WiseScholar', name: 'Wise Scholar' }
-    ],
-    '其他': []
-};
-
-const OTHER_LANGUAGES = ['葡萄牙文', '法文', '印尼文', '德文', '俄文', '意大利文', '阿拉伯文', '土耳其文', '越南文', '泰文'];
+// 音色数据由 voice-library.js 统一提供（VOICE_LIBRARY）
 
 // 状态变量
 let audioElement = null;
@@ -163,45 +118,7 @@ function initApiKey() {
     }
 }
 
-function getApiKey() {
-    return localStorage.getItem('minimax_tts_api_key') || '';
-}
-
-function updateApiKeyDisplay() {
-    const key = getApiKey();
-    const display = document.getElementById('apiKeyDisplay');
-    if (key) {
-        display.textContent = '****' + key.slice(-6);
-        display.classList.add('set');
-    } else {
-        display.textContent = '未设置 API Key';
-        display.classList.remove('set');
-    }
-}
-
-function showApiKeyModal() {
-    const modal = document.getElementById('apiKeyModal');
-    const input = document.getElementById('apiKeyInput');
-    input.value = getApiKey();
-    modal.classList.remove('hidden');
-}
-
-function hideApiKeyModal() {
-    document.getElementById('apiKeyModal').classList.add('hidden');
-}
-
-function saveApiKey() {
-    const input = document.getElementById('apiKeyInput');
-    const key = input.value.trim();
-    if (key) {
-        localStorage.setItem('minimax_tts_api_key', key);
-        updateApiKeyDisplay();
-        hideApiKeyModal();
-        showToast('API Key 保存成功', 'success');
-    } else {
-        showToast('请输入有效的 API Key', 'error');
-    }
-}
+// API Key 管理由 api-key.js 统一提供
 
 function initModelSelection() {
     const options = document.querySelectorAll('.model-option');

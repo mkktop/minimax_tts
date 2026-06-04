@@ -1154,12 +1154,9 @@ app.post('/api/music/generate', validateApiKey, async (req, res) => {
         } else if (!is_instrumental && !isCover && !lyrics_optimizer) {
             // music-2.6 非纯音乐必须有 lyrics 或 lyrics_optimizer
             return res.status(400).json({ success: false, error: 'music-2.6 非纯音乐必须提供 lyrics 或启用 lyrics_optimizer' });
-        } else if (!is_instrumental && isCover && !cover_feature_id) {
-            // music-cover 一键模式: lyrics 可选（自动 ASR 提取）；两步模式: lyrics 必填
-            // 在两步模式下 cover_feature_id 必填且 lyrics 必填
-            if (cover_feature_id) {
-                return res.status(400).json({ success: false, error: '两步翻唱必须提供修改后的 lyrics' });
-            }
+        } else if (!is_instrumental && isCover && cover_feature_id && !lyrics) {
+            // music-cover 两步模式: cover_feature_id 已提供，lyrics 必填
+            return res.status(400).json({ success: false, error: '两步翻唱必须提供修改后的 lyrics' });
         }
 
         // 校验 output_format
@@ -1349,18 +1346,22 @@ server.listen(PORT, () => {
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║     🎙️  MiniMax TTS 语音合成器 启动成功！                  ║
+║     🎙️  MiniMax Studio 启动成功！                          ║
 ║                                                           ║
 ║     本地地址: http://localhost:${PORT}                       ║
 ║                                                           ║
 ║     功能页面:                                              ║
-║       - /              首页                                ║
-║       - /streaming     同步合成（流式）                    ║
-║       - /http          同步合成（HTTP）                     ║
-║       - /async         异步合成                            ║
-║       - /clone         音色复刻                            ║
-║       - /image         文生图                              ║
-║       - /music         音乐生成                            ║
+║       - /                  首页                            ║
+║       - /tts/              语音合成                        ║
+║       - /tts/streaming     流式合成                        ║
+║       - /tts/http          HTTP合成                        ║
+║       - /tts/async         异步合成                        ║
+║       - /tts/clone         音色复刻                        ║
+║       - /tts/voice-design  音色设计                        ║
+║       - /image/            图片生成                        ║
+║       - /music/            音乐生成                        ║
+║       - /music/lyrics      歌词生成                        ║
+║       - /music/cover       翻唱生成                        ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
     `);

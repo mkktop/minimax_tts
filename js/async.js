@@ -4,30 +4,7 @@
  * API: POST /v1/t2a_async_v2
  */
 
-// 音色数据
-const VOICES_DATA = {
-    '中文（普通话）': [
-        { id: 'male-qn-qingse', name: '青涩青年音色' },
-        { id: 'male-qn-jingying', name: '精英青年音色' },
-        { id: 'male-qn-badao', name: '霸道青年音色' },
-        { id: 'male-qn-daxuesheng', name: '青年大学生音色' },
-        { id: 'female-shaonv', name: '少女音色' },
-        { id: 'female-yujie', name: '御姐音色' },
-        { id: 'female-chengshu', name: '成熟女性音色' },
-        { id: 'female-tianmei', name: '甜美女性音色' }
-    ],
-    '中文（粤语）': [
-        { id: 'Cantonese_ProfessionalHost（F）', name: '专业女主持' },
-        { id: 'Cantonese_GentleLady', name: '温柔女声' }
-    ],
-    '英文': [
-        { id: 'Santa_Claus', name: 'Santa Claus' },
-        { id: 'Grinch', name: 'Grinch' },
-        { id: 'Arnold', name: 'Arnold' }
-    ]
-};
-
-const OTHER_LANGUAGES = ['葡萄牙文', '法文', '印尼文', '德文', '俄文', '意大利文', '阿拉伯文', '土耳其文', '越南文', '泰文', '日文', '韩文', '西班牙文'];
+// 音色数据由 voice-library.js 统一提供（VOICE_LIBRARY）
 
 // 状态变量
 let currentTaskId = null;
@@ -151,45 +128,7 @@ function initApiKey() {
     }
 }
 
-function getApiKey() {
-    return localStorage.getItem('minimax_tts_api_key') || '';
-}
-
-function updateApiKeyDisplay() {
-    const key = getApiKey();
-    const display = document.getElementById('apiKeyDisplay');
-    if (key) {
-        display.textContent = '****' + key.slice(-6);
-        display.classList.add('set');
-    } else {
-        display.textContent = '未设置 API Key';
-        display.classList.remove('set');
-    }
-}
-
-function showApiKeyModal() {
-    const modal = document.getElementById('apiKeyModal');
-    const input = document.getElementById('apiKeyInput');
-    input.value = getApiKey();
-    modal.classList.remove('hidden');
-}
-
-function hideApiKeyModal() {
-    document.getElementById('apiKeyModal').classList.add('hidden');
-}
-
-function saveApiKey() {
-    const input = document.getElementById('apiKeyInput');
-    const key = input.value.trim();
-    if (key) {
-        localStorage.setItem('minimax_tts_api_key', key);
-        updateApiKeyDisplay();
-        hideApiKeyModal();
-        showToast('API Key 保存成功', 'success');
-    } else {
-        showToast('请输入有效的 API Key', 'error');
-    }
-}
+// API Key 管理由 api-key.js 统一提供
 
 function initModelSelection() {
     const options = document.querySelectorAll('.model-option');

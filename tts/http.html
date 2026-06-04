@@ -146,9 +146,9 @@
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">音量 (0 - 2)</label>
+                                <label class="form-label">音量 (0.1 - 10)</label>
                                 <div class="form-slider">
-                                    <input type="range" id="volSlider" min="0" max="2" step="0.1" value="1">
+                                    <input type="range" id="volSlider" min="0.1" max="10" step="0.1" value="1">
                                     <span class="slider-value" id="volValue">1.0</span>
                                 </div>
                             </div>
@@ -186,6 +186,15 @@
                                     <option value="French">法语</option>
                                     <option value="German">德语</option>
                                     <option value="Russian">俄语</option>
+                                    <option value="Arabic">阿拉伯语</option>
+                                    <option value="Portuguese">葡萄牙语</option>
+                                    <option value="Turkish">土耳其语</option>
+                                    <option value="Dutch">荷兰语</option>
+                                    <option value="Ukrainian">乌克兰语</option>
+                                    <option value="Vietnamese">越南语</option>
+                                    <option value="Indonesian">印尼语</option>
+                                    <option value="Italian">意大利语</option>
+                                    <option value="Thai">泰语</option>
                                 </select>
                             </div>
                         </div>
@@ -196,6 +205,42 @@
                             <div class="form-group">
                                 <label class="form-label">自定义发音规则，每行一条</label>
                                 <textarea id="pronunciationInput" class="form-input" style="min-height: 60px; resize: vertical; font-size: 0.8125rem;" placeholder="例：处理/(chu3)(li3)&#10;omg/oh my god"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- 声音效果 -->
+                        <div class="settings-group">
+                            <div class="settings-group-title">🎛️ 声音效果（可选）</div>
+                            <div class="form-group">
+                                <label class="form-label">音高调整（低沉 ↔ 明亮）</label>
+                                <div class="form-slider">
+                                    <input type="range" id="modifyPitchSlider" min="-100" max="100" step="1" value="0">
+                                    <span class="slider-value" id="modifyPitchValue">0</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">强度调整（刚劲 ↔ 轻柔）</label>
+                                <div class="form-slider">
+                                    <input type="range" id="modifyIntensitySlider" min="-100" max="100" step="1" value="0">
+                                    <span class="slider-value" id="modifyIntensityValue">0</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">音色调整（浑厚 ↔ 清脆）</label>
+                                <div class="form-slider">
+                                    <input type="range" id="modifyTimbreSlider" min="-100" max="100" step="1" value="0">
+                                    <span class="slider-value" id="modifyTimbreValue">0</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">音效</label>
+                                <select id="soundEffectsSelect" class="form-input">
+                                    <option value="">无</option>
+                                    <option value="spacious_echo">🏛️ 空旷回音</option>
+                                    <option value="auditorium_echo">🎤 礼堂广播</option>
+                                    <option value="lofi_telephone">📱 电话失真</option>
+                                    <option value="robotic">🤖 电音</option>
+                                </select>
                             </div>
                         </div>
 
@@ -212,12 +257,24 @@
                                 </select>
                             </div>
                             <div class="form-group">
+                                <label class="form-label">比特率</label>
+                                <select id="bitrateSelect" class="form-input">
+                                    <option value="32000">32 kbps</option>
+                                    <option value="64000">64 kbps</option>
+                                    <option value="128000" selected>128 kbps</option>
+                                    <option value="256000">256 kbps</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
                                 <label class="form-label">格式</label>
                                 <select id="formatSelect" class="form-input">
                                     <option value="mp3" selected>MP3</option>
-                                    <option value="wav">WAV</option>
-                                    <option value="flac">FLAC</option>
                                     <option value="pcm">PCM</option>
+                                    <option value="flac">FLAC</option>
+                                    <option value="wav">WAV</option>
+                                    <option value="opus">OGG/Opus</option>
+                                    <option value="pcmu_raw">G.711 μ-law (raw)</option>
+                                    <option value="pcmu_wav">G.711 μ-law (wav)</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -307,6 +364,7 @@
     <!-- Audio Element -->
     <audio id="audioElement" style="display: none;"></audio>
 
+    <script src="../js/api-key.js"></script>
     <script src="../js/custom-select.js"></script>
     <script src="../js/voice-library.js"></script>
     <script src="../js/http.js"></script>
