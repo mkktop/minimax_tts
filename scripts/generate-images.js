@@ -12,7 +12,8 @@ const path = require('path');
 
 // 优先从环境变量读取 API Key
 // 也可以通过命令行参数传入: node scripts/generate-images.js <API_KEY>
-let API_KEY = process.argv[2] || process.env.MINIMAX_API_KEY;
+// 或通过 stdin 交互输入
+let API_KEY = process.env.MINIMAX_API_KEY || process.argv[2];
 const API_URL = 'https://api.minimaxi.com/v1/image_generation';
 const IMAGES_DIR = path.join(__dirname, '..', 'images');
 

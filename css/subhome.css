@@ -5,10 +5,50 @@
 
 /* ============ Module Hero (子模块头) ============ */
 .module-hero {
-    padding: 100px 0 48px;
+    position: relative;
+    padding: 120px 0 60px;
     border-bottom: 1px solid var(--border-color);
     background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-dark) 100%);
     overflow: hidden;
+}
+
+/* 模块 hero 背景图（带暗色渐变叠加，确保文字可读） */
+.module-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: var(--module-bg, none);
+    background-size: cover;
+    background-position: center;
+    opacity: 0.4;
+    z-index: 0;
+}
+
+/* 顶部暗色渐变（保证文字可读） */
+.module-hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.7) 0%, rgba(15, 23, 42, 0.85) 100%);
+    z-index: 1;
+}
+
+.module-hero > .container {
+    position: relative;
+    z-index: 2;
+}
+
+/* 各模块背景图变量 */
+.module-hero-tts {
+    --module-bg: url('../images/tts-module-bg.jpg');
+}
+
+.module-hero-image {
+    --module-bg: url('../images/image-module-bg.jpg');
+}
+
+.module-hero-music {
+    --module-bg: url('../images/music-module-bg.jpg');
 }
 
 .module-hero-content {
@@ -54,12 +94,17 @@
 
 .module-hero-image .module-hero-icon {
     background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
-    box-shadow: 0 12px 30px rgba(236, 72, 153, 0.3);
+    box-shadow: 0 12px 30px rgba(236, 72, 153, 0.4), 0 0 50px rgba(236, 72, 153, 0.2);
 }
 
 .module-hero-music .module-hero-icon {
-    background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
-    box-shadow: 0 12px 30px rgba(139, 92, 246, 0.3);
+    background: linear-gradient(135deg, #a855f7 0%, #f59e0b 100%);
+    box-shadow: 0 12px 30px rgba(168, 85, 247, 0.4), 0 0 50px rgba(245, 158, 11, 0.2);
+}
+
+.module-hero-tts .module-hero-icon {
+    background: linear-gradient(135deg, #06B6D4 0%, #4F46E5 100%);
+    box-shadow: 0 12px 30px rgba(6, 182, 212, 0.4), 0 0 50px rgba(79, 70, 229, 0.2);
 }
 
 .module-hero-badge {
