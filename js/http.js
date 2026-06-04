@@ -100,6 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (el) el.addEventListener('change', saveSettings);
         if (el) el.addEventListener('input', () => { clearTimeout(el._saveTimer); el._saveTimer = setTimeout(saveSettings, 500); });
     });
+    initResourceHistory('tts');
 });
 
 function initApiKey() {

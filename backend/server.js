@@ -1,7 +1,10 @@
 /**
  * MiniMax TTS 后端服务
- * 提供 API Key 保护和文件上传代理
+ * 提供 API Key 保护、用户认证和文件上传代理
  */
+
+// 加载 .env 环境变量（必须在最顶部）
+require('dotenv').config();
 
 const express = require('express');
 const http = require('http');
@@ -11,6 +14,14 @@ const axios = require('axios');
 const multer = require('multer');
 const FormData = require('form-data');
 const WebSocket = require('ws');
+const session = require('express-session');
+const { v4: uuidv4 } = require('uuid');
+
+// 数据库与认证模块
+const db = require('./db/database');
+const { requireAuth, authenticateWebSocket } = require('./middleware/auth');
+const authRouter = require('./routes/auth');
+const resourcesRouter = require('./routes/resources');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,8 +36,71 @@ const upload = multer({
 });
 
 // 中间件
-app.use(cors());
+app.use(cors({
+    origin: true,
+    credentials: true
+}));
 app.use(express.json({ limit: '50mb' }));
+
+// Session 配置
+const SESSION_SECRET = process.env.SESSION_SECRET || 'minimax-studio-change-me-in-production';
+const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'minimax.sid';
+
+// 自定义 MySQL Session Store
+class MySQLSessionStore extends session.Store {
+    constructor() {
+        super();
+    }
+    async get(sid, callback) {
+        try {
+            const data = await db.getSession(sid);
+            if (!data) return callback(null, null);
+            callback(null, data);
+        } catch (err) {
+            callback(err);
+        }
+    }
+    async set(sid, sessionData, callback) {
+        try {
+            const ttl = sessionData.cookie?.maxAge || 86400000;
+            await db.setSession(sid, sessionData, ttl);
+            callback && callback();
+        } catch (err) {
+            callback && callback(err);
+        }
+    }
+    async destroy(sid, callback) {
+        try {
+            await db.destroySession(sid);
+            callback && callback();
+        } catch (err) {
+            callback && callback(err);
+        }
+    }
+    async touch(sid, sessionData, callback) {
+        try {
+            const ttl = sessionData.cookie?.maxAge || 86400000;
+            await db.setSession(sid, sessionData, ttl);
+            callback && callback();
+        } catch (err) {
+            callback && callback(err);
+        }
+    }
+}
+
+app.use(session({
+    name: SESSION_COOKIE_NAME,
+    secret: SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    store: new MySQLSessionStore(),
+    cookie: {
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 天
+        httpOnly: true,
+        sameSite: 'lax'
+    }
+}));
+
 app.use(express.static(path.join(__dirname, '..')));
 
 // 根路径返回首页
@@ -419,15 +493,28 @@ const VOICES = {
 // 语言列表
 const LANGUAGES = Object.keys(VOICES);
 
-// API Key 验证
-const validateApiKey = (req, res, next) => {
-    const apiKey = req.headers['x-api-key'] || req.headers['authorization']?.replace('Bearer ', '');
-    if (!apiKey) {
-        return res.status(401).json({ error: 'API Key is required' });
+// ============ 挂载认证与资源路由 ============
+app.use('/api/auth', authRouter);
+app.use('/api/resources', resourcesRouter);
+
+// 辅助函数：hex 字符串转 Buffer
+function hexToBuffer(hexString) {
+    const hex = hexString.replace(/\s/g, '');
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < hex.length; i += 2) {
+        bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
     }
-    req.apiKey = apiKey;
-    next();
-};
+    return Buffer.from(bytes);
+}
+
+// 辅助函数：保存生成资源到数据库（不阻塞响应）
+function saveResourceAsync(userId, type, fileData, meta) {
+    const id = uuidv4();
+    db.saveResource({ id, userId, type, fileData, meta }).catch(err => {
+        console.error(`[Resource] 保存 ${type} 资源失败:`, err.message);
+    });
+    return id; // 返回资源 ID
+}
 
 // ============ API 路由 ============
 
@@ -449,7 +536,7 @@ app.get('/api/languages', (req, res) => {
 });
 
 // 同步合成（HTTP）- 创建任务
-app.post('/api/tts/http', validateApiKey, async (req, res) => {
+app.post('/api/tts/http', requireAuth, async (req, res) => {
     try {
         const {
             model = 'speech-2.8-hd',
@@ -530,7 +617,27 @@ app.post('/api/tts/http', validateApiKey, async (req, res) => {
         }
 
         const response = await axios.post(`${MINIMAX_API_BASE}/v1/t2a_v2`, payload, axiosOpts);
-        res.json({ success: true, data: response.data });
+        const result = { success: true, data: response.data };
+
+        // 保存资源到数据库
+        if (response.data?.data?.audio && req.userId) {
+            try {
+                const audioFormat = audio_setting?.format || 'mp3';
+                const audioBuffer = output_format === 'hex' ? hexToBuffer(response.data.data.audio) : Buffer.from(response.data.data.audio, 'base64');
+                const resourceId = saveResourceAsync(req.userId, 'tts', audioBuffer, {
+                    model,
+                    prompt: text,
+                    voiceId: voice_setting?.voice_id,
+                    format: audioFormat,
+                    params: { voice_setting, audio_setting }
+                });
+                result.resourceId = resourceId;
+            } catch (saveErr) {
+                console.error('[Resource] TTS HTTP 保存失败:', saveErr.message);
+            }
+        }
+
+        res.json(result);
     } catch (error) {
         console.error('TTS HTTP Error:', error.message);
         const errData = error.response?.data;
@@ -542,7 +649,7 @@ app.post('/api/tts/http', validateApiKey, async (req, res) => {
 });
 
 // 异步合成 - 创建任务
-app.post('/api/tts/async/create', validateApiKey, async (req, res) => {
+app.post('/api/tts/async/create', requireAuth, async (req, res) => {
     try {
         const { model, text, text_file_id, voice_setting, audio_setting, language_boost, pronunciation_dict, voice_modify, aigc_watermark } = req.body;
 
@@ -596,7 +703,7 @@ app.post('/api/tts/async/create', validateApiKey, async (req, res) => {
 });
 
 // 异步合成 - 查询任务状态
-app.get('/api/tts/async/query', validateApiKey, async (req, res) => {
+app.get('/api/tts/async/query', requireAuth, async (req, res) => {
     try {
         const { task_id } = req.query;
         if (!task_id) {
@@ -623,7 +730,7 @@ app.get('/api/tts/async/query', validateApiKey, async (req, res) => {
 });
 
 // 异步合成 - 下载音频
-app.get('/api/tts/async/download', validateApiKey, async (req, res) => {
+app.get('/api/tts/async/download', requireAuth, async (req, res) => {
     try {
         const { file_id } = req.query;
         if (!file_id) {
@@ -636,6 +743,21 @@ app.get('/api/tts/async/download', validateApiKey, async (req, res) => {
             },
             responseType: 'arraybuffer'
         });
+
+        // 保存资源到数据库
+        if (req.userId && response.data) {
+            try {
+                const resourceId = saveResourceAsync(req.userId, 'tts', Buffer.from(response.data), {
+                    model: 'async',
+                    format: 'mp3',
+                    params: { file_id }
+                });
+                // 在响应头中返回资源 ID
+                res.setHeader('X-Resource-Id', resourceId);
+            } catch (saveErr) {
+                console.error('[Resource] Async TTS 下载保存失败:', saveErr.message);
+            }
+        }
 
         res.set('Content-Type', 'audio/mpeg');
         res.send(response.data);
@@ -652,23 +774,23 @@ app.get('/api/tts/async/download', validateApiKey, async (req, res) => {
 // 浏览器连 ws://localhost:3000/ws/tts，后端转发到 wss://api.minimaxi.com/ws/v1/t2a_v2
 const wss = new WebSocket.Server({ noServer: true });
 
-// 处理 HTTP 升级到 WebSocket
-server.on('upgrade', (request, socket, head) => {
+// 处理 HTTP 升级到 WebSocket（使用 session 认证）
+server.on('upgrade', async (request, socket, head) => {
     const pathname = new URL(request.url, `http://${request.headers.host}`).pathname;
 
     if (pathname === '/ws/tts') {
-        // 从 URL query 或 header 中提取 API Key
-        const url = new URL(request.url, `http://${request.headers.host}`);
-        const apiKey = url.searchParams.get('token') || request.headers['x-api-key'];
-
-        if (!apiKey) {
+        // 通过 session cookie 认证
+        const authResult = await authenticateWebSocket(request);
+        if (!authResult.authenticated) {
+            console.log('[WS] 认证失败:', authResult.error);
             socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
             socket.destroy();
             return;
         }
 
         wss.handleUpgrade(request, socket, head, (ws) => {
-            ws._minimaxApiKey = apiKey;
+            ws._minimaxApiKey = authResult.apiKey;
+            ws._userId = authResult.userId;
             wss.emit('connection', ws, request);
         });
     } else {
@@ -750,7 +872,7 @@ wss.on('connection', (clientWs, request) => {
 const uploadMiddleware = upload.fields([{ name: 'file', maxCount: 1 }]);
 
 // 文件上传（通用）
-app.post('/api/files/upload', validateApiKey, uploadMiddleware, async (req, res) => {
+app.post('/api/files/upload', requireAuth, uploadMiddleware, async (req, res) => {
     try {
         const { purpose } = req.body;
         const files = req.files;
@@ -785,7 +907,7 @@ app.post('/api/files/upload', validateApiKey, uploadMiddleware, async (req, res)
 });
 
 // 音色复刻 - 上传克隆音频
-app.post('/api/clone/upload', validateApiKey, uploadMiddleware, async (req, res) => {
+app.post('/api/clone/upload', requireAuth, uploadMiddleware, async (req, res) => {
     try {
         const files = req.files;
         const file = files?.file?.[0];
@@ -818,7 +940,7 @@ app.post('/api/clone/upload', validateApiKey, uploadMiddleware, async (req, res)
 });
 
 // 音色复刻 - 上传示例音频
-app.post('/api/clone/prompt', validateApiKey, uploadMiddleware, async (req, res) => {
+app.post('/api/clone/prompt', requireAuth, uploadMiddleware, async (req, res) => {
     try {
         const files = req.files;
         const file = files?.file?.[0];
@@ -851,7 +973,7 @@ app.post('/api/clone/prompt', validateApiKey, uploadMiddleware, async (req, res)
 });
 
 // 音色复刻 - 执行克隆
-app.post('/api/clone/execute', validateApiKey, async (req, res) => {
+app.post('/api/clone/execute', requireAuth, async (req, res) => {
     try {
         const { file_id, voice_id, clone_prompt, text, model, language_boost, need_noise_reduction, need_volume_normalization, aigc_watermark } = req.body;
 
@@ -892,7 +1014,7 @@ app.post('/api/clone/execute', validateApiKey, async (req, res) => {
 });
 
 // ============ 音色设计 ============
-app.post('/api/voice/design', validateApiKey, async (req, res) => {
+app.post('/api/voice/design', requireAuth, async (req, res) => {
     try {
         const { prompt, preview_text, voice_id, aigc_watermark } = req.body;
 
@@ -929,7 +1051,7 @@ app.post('/api/voice/design', validateApiKey, async (req, res) => {
 });
 
 // ============ 查询可用音色 ============
-app.post('/api/voice/list', validateApiKey, async (req, res) => {
+app.post('/api/voice/list', requireAuth, async (req, res) => {
     try {
         const { voice_type } = req.body;
 
@@ -956,7 +1078,7 @@ app.post('/api/voice/list', validateApiKey, async (req, res) => {
 });
 
 // 删除音色
-app.post('/api/voice/delete', validateApiKey, async (req, res) => {
+app.post('/api/voice/delete', requireAuth, async (req, res) => {
     try {
         const { voice_type, voice_id } = req.body;
 
@@ -988,7 +1110,7 @@ app.post('/api/voice/delete', validateApiKey, async (req, res) => {
 });
 
 // 图片生成
-app.post('/api/image/generate', validateApiKey, async (req, res) => {
+app.post('/api/image/generate', requireAuth, async (req, res) => {
     try {
         const {
             model = 'image-01',
@@ -1061,10 +1183,29 @@ app.post('/api/image/generate', validateApiKey, async (req, res) => {
             timeout: 120000
         });
 
-        res.json({
-            success: true,
-            data: response.data
-        });
+        const imageResult = { success: true, data: response.data };
+
+        // 保存资源到数据库
+        if (response.data?.data?.image_urls && req.userId) {
+            try {
+                const firstImage = response.data.data.image_urls[0];
+                if (firstImage) {
+                    // base64 图片：解码保存
+                    const imageBuffer = Buffer.from(firstImage, 'base64');
+                    const resourceId = saveResourceAsync(req.userId, 'image', imageBuffer, {
+                        model,
+                        prompt,
+                        format: 'png',
+                        params: { aspect_ratio, width, height, seed, prompt_optimizer, style }
+                    });
+                    imageResult.resourceId = resourceId;
+                }
+            } catch (saveErr) {
+                console.error('[Resource] 图片保存失败:', saveErr.message);
+            }
+        }
+
+        res.json(imageResult);
     } catch (error) {
         console.error('Image Generation Error:', error.message);
         const errData = error.response?.data;
@@ -1078,7 +1219,7 @@ app.post('/api/image/generate', validateApiKey, async (req, res) => {
 
 // ============ 音乐生成 ============
 // 音乐生成（text → music）
-app.post('/api/music/generate', validateApiKey, async (req, res) => {
+app.post('/api/music/generate', requireAuth, async (req, res) => {
     try {
         const {
             model = 'music-2.6',
@@ -1213,10 +1354,31 @@ app.post('/api/music/generate', validateApiKey, async (req, res) => {
             return;
         }
 
-        res.json({
-            success: true,
-            data: response.data
-        });
+        const musicResult = { success: true, data: response.data };
+
+        // 保存资源到数据库
+        if (response.data?.data?.audio && req.userId) {
+            try {
+                const audioFormat = audio_setting?.format || fmt || 'mp3';
+                let audioBuffer;
+                if (output_format === 'hex') {
+                    audioBuffer = hexToBuffer(response.data.data.audio);
+                } else {
+                    audioBuffer = Buffer.from(response.data.data.audio, 'base64');
+                }
+                const resourceId = saveResourceAsync(req.userId, 'music', audioBuffer, {
+                    model,
+                    prompt,
+                    format: audioFormat,
+                    params: { lyrics, audio_setting, is_instrumental, isCover }
+                });
+                musicResult.resourceId = resourceId;
+            } catch (saveErr) {
+                console.error('[Resource] 音乐保存失败:', saveErr.message);
+            }
+        }
+
+        res.json(musicResult);
     } catch (error) {
         console.error('Music Generation Error:', error.message);
         const errData = error.response?.data;
@@ -1229,7 +1391,7 @@ app.post('/api/music/generate', validateApiKey, async (req, res) => {
 });
 
 // 歌词生成
-app.post('/api/music/lyrics', validateApiKey, async (req, res) => {
+app.post('/api/music/lyrics', requireAuth, async (req, res) => {
     try {
         const { mode = 'write_full_song', prompt, lyrics, title } = req.body;
 
@@ -1293,7 +1455,7 @@ app.post('/api/music/lyrics', validateApiKey, async (req, res) => {
 });
 
 // 翻唱前处理（提取音频特征和歌词）
-app.post('/api/music/cover/preprocess', validateApiKey, async (req, res) => {
+app.post('/api/music/cover/preprocess', requireAuth, async (req, res) => {
     try {
         const { model = 'music-cover', audio_url, audio_base64 } = req.body;
 
@@ -1341,9 +1503,28 @@ app.post('/api/music/cover/preprocess', validateApiKey, async (req, res) => {
 // 注意：实际的 WebSocket 代理需要在客户端直接连接 MiniMax API
 // 后端仅提供 token 验证和连接引导
 
-// 启动服务器
-server.listen(PORT, () => {
-    console.log(`
+// 启动服务器（先初始化数据库）
+async function startServer() {
+    try {
+        // 初始化数据库
+        await db.initTables();
+        console.log('[DB] 数据库初始化完成');
+
+        // 清理过期 session
+        await db.cleanupSessions();
+
+        // 每 6 小时清理过期资源和 session
+        setInterval(async () => {
+            try {
+                await db.cleanupExpiredResources(7);
+                await db.cleanupSessions();
+            } catch (err) {
+                console.error('[定时任务] 清理失败:', err.message);
+            }
+        }, 6 * 60 * 60 * 1000);
+
+        server.listen(PORT, () => {
+            console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
 ║     🎙️  MiniMax Studio 启动成功！                          ║
@@ -1364,5 +1545,12 @@ server.listen(PORT, () => {
 ║       - /music/cover       翻唱生成                        ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
-    `);
-});
+            `);
+        });
+    } catch (err) {
+        console.error('[启动] 服务器启动失败:', err);
+        process.exit(1);
+    }
+}
+
+startServer();

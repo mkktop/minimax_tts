@@ -121,6 +121,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (el) el.addEventListener('change', saveSettings);
         if (el) el.addEventListener('input', () => { clearTimeout(el._saveTimer); el._saveTimer = setTimeout(saveSettings, 500); });
     });
+    initResourceHistory('tts');
 });
 
 function initApiKey() {
@@ -337,9 +338,9 @@ async function startSynthesis() {
     startTime = Date.now();
 
     try {
-        // 连接到后端 WebSocket 代理
+        // 连接到后端 WebSocket 代理（session cookie 自动携带）
         const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${wsProtocol}//${location.host}/ws/tts?token=${encodeURIComponent(apiKey)}`;
+        const wsUrl = `${wsProtocol}//${location.host}/ws/tts`;
 
         await new Promise((resolve, reject) => {
             ws = new WebSocket(wsUrl);

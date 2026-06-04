@@ -22,9 +22,16 @@
                 <a href="../music/" class="nav-link">音乐生成</a>
             </nav>
             <div class="header-actions">
-                <div class="api-key-section">
+                <div id="authSection" class="hidden">
+                    <span id="userDisplay" class="user-display"></span>
+                    <button class="btn btn-secondary btn-sm" onclick="logout()">退出</button>
+                </div>
+                <div id="apiKeySection" class="api-key-section">
                     <span id="apiKeyDisplay" class="api-key-display">未设置 API Key</span>
                     <button class="btn btn-secondary btn-sm" onclick="showApiKeyModal()">设置</button>
+                </div>
+                <div id="loginSection">
+                    <button class="btn btn-secondary btn-sm" onclick="showLoginModal()">登录</button>
                 </div>
             </div>
         </div>
@@ -293,8 +300,10 @@
         }
     </style>
 
+    <script src="../js/auth.js"></script>
     <script src="../js/api-key.js"></script>
     <script src="../js/custom-select.js"></script>
     <script src="../js/image.js"></script>
+    <script src="../js/resource-history.js"></script>
 </body>
 </html>

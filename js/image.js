@@ -416,4 +416,5 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('已从音乐页导入封面设计提示', 'success');
         }
     }
+    initResourceHistory('image');
 });

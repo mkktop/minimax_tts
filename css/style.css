@@ -1054,3 +1054,309 @@ select.form-input.hidden-native {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--text-secondary);
 }
+
+/* ============ 登录弹窗 ============ */
+
+.login-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-modal.hidden {
+    display: none;
+}
+
+.login-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+}
+
+.login-modal-content {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    width: 400px;
+    max-width: 90vw;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.3);
+    animation: loginModalIn 0.25s ease-out;
+}
+
+@keyframes loginModalIn {
+    from { opacity: 0; transform: translateY(-16px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.login-modal-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.login-modal-close:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.login-modal-title {
+    text-align: center;
+    font-size: 1.25rem;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+}
+
+/* Tabs */
+.login-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--border);
+}
+
+.login-tab {
+    flex: 1;
+    padding: 10px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.9375rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+}
+
+.login-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+.login-tab:hover:not(.active) {
+    color: var(--text-secondary);
+}
+
+/* Form */
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.login-form.hidden {
+    display: none;
+}
+
+.login-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.login-field label {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.login-field input {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-main);
+    color: var(--text-primary);
+    font-size: 0.9375rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.login-field input:focus {
+    border-color: var(--accent);
+}
+
+.login-submit {
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 4px;
+}
+
+.login-submit:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+
+.login-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Error */
+.login-error {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+.login-error.hidden {
+    display: none;
+}
+
+/* ============ 认证状态 UI ============ */
+
+.user-display {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-right: 8px;
+}
+
+#authSection {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#loginSection {
+    display: flex;
+    align-items: center;
+}
+
+/* ============ 资源历史记录 ============ */
+
+.resource-history {
+    margin-top: 24px;
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+}
+
+.resource-history-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.resource-history-title .count {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 400;
+    background: var(--bg-hover);
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.resource-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.resource-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--bg-main);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.resource-item:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+}
+
+.resource-item-icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.resource-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.resource-item-prompt {
+    font-size: 0.8125rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.resource-item-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.resource-item-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.resource-item-actions button {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.resource-item-actions button:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.resource-item-actions .btn-delete:hover {
+    color: #ef4444;
+    border-color: #ef4444;
+}
+
+.resource-empty {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
