@@ -812,7 +812,12 @@ wss.on('connection', (clientWs, request) => {
     console.log('[WS] 客户端连接，开始代理到 MiniMax WebSocket');
 
     // 连接到 MiniMax WebSocket 服务器
-    const minimaxWs = new WebSocket(`wss://api.minimaxi.com/ws/v1/t2a_v2?Authorization=Bearer ${apiKey}`);
+    // 注意：MiniMax WS 鉴权要求把 Authorization 放在 header（不能放 query string，放 query 会被判 "invalid api key"）
+    const minimaxWs = new WebSocket('wss://api.minimaxi.com/ws/v1/t2a_v2', {
+        headers: {
+            'Authorization': `Bearer ${apiKey}`
+        }
+    });
 
     let clientClosed = false;
     let upstreamClosed = false;
