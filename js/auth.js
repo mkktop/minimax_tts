@@ -26,11 +26,18 @@ async function checkAuth() {
             showGuestUI();
         }
         window.authChecked = true;
+        // 通知其他模块认证状态已就绪
+        window.dispatchEvent(new CustomEvent('authChanged', {
+            detail: { authenticated: !!data.authenticated, user: window.currentUser }
+        }));
     } catch (err) {
         console.error('[Auth] 检查登录状态失败:', err);
         window.currentUser = null;
         window.authChecked = true;
         showGuestUI();
+        window.dispatchEvent(new CustomEvent('authChanged', {
+            detail: { authenticated: false }
+        }));
     }
 }
 

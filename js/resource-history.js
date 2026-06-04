@@ -36,8 +36,14 @@ function initResourceHistory(type) {
         refreshResourceHistory();
     });
 
-    // 初始加载
-    refreshResourceHistory();
+    // 如果 auth 已经完成（竞态兜底），直接加载
+    if (window.authChecked && window.currentUser) {
+        refreshResourceHistory();
+    } else if (!window.authChecked) {
+        // auth 还没完成，refreshResourceHistory 会在 authChanged 触发时调用
+    } else {
+        // auth 已完成但未登录，不加载
+    }
 }
 
 /**
