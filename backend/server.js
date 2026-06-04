@@ -101,7 +101,16 @@ app.use(session({
     }
 }));
 
-app.use(express.static(path.join(__dirname, '..')));
+app.use(express.static(path.join(__dirname, '..'), {
+    setHeaders: (res, filePath) => {
+        // JS/CSS/HTML 文件不缓存，确保用户总能拿到最新版本
+        if (filePath.endsWith('.js') || filePath.endsWith('.css') || filePath.endsWith('.html')) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        }
+    }
+}));
 
 // 根路径返回首页
 app.get('/', (req, res) => {
