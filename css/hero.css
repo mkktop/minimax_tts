@@ -6,12 +6,25 @@
 /* ============ Hero 全屏背景 ============ */
 .hero {
     position: relative;
-    min-height: calc(100vh - 72px);
+    min-height: 100vh;
     display: flex;
     align-items: center;
     overflow: hidden;
     isolation: isolate;
-    padding: 80px 0 100px;
+    padding: 80px 0 140px;
+}
+
+/* Hero 底部渐变过渡到模块区 */
+.hero::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 150px;
+    background: linear-gradient(to top, var(--bg-dark), transparent);
+    z-index: 1;
+    pointer-events: none;
 }
 
 .hero-bg-carousel {
@@ -66,7 +79,7 @@
 
 /* 重写 carousel-dots 位置（覆盖 home.css 的底部 16px） */
 .hero .carousel-dots {
-    bottom: 60px;
+    bottom: 100px;
     padding: 8px 16px;
     background: rgba(15, 23, 42, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -153,18 +166,17 @@
 /* 滚动提示 */
 .scroll-hint {
     position: absolute;
-    bottom: 24px;
+    bottom: 36px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 3;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 0.75rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    gap: 6px;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
     animation: scrollBounce 2s ease-in-out infinite;
 }
 
@@ -283,7 +295,7 @@
 
 /* ============ 多模块入口主页 ============ */
 .modules-section {
-    padding: 80px 0 100px;
+    padding: 40px 0 100px;
     background: var(--bg-dark);
 }
 
