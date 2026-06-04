@@ -140,10 +140,12 @@
                                 <button class="btn btn-secondary btn-sm" onclick="window.open('lyrics.html', '_blank')">✍️ AI 作词</button>
                             </div>
 
-                            <div style="margin-top: 16px;">
-                                <button id="generateBtn" class="btn btn-primary w-full" onclick="generateMusic()">
+                            <div style="margin-top: 16px; display: flex; gap: 8px;">
+                                <button id="generateBtn" class="btn btn-primary" style="flex: 1;" onclick="generateMusic()">
                                     🎵 开始生成
                                 </button>
+                                <button class="btn btn-secondary" onclick="transferToCoverArt()" title="用当前风格直接生成专辑封面（无需等待音乐生成）">🎨 生成封面</button>
+                            </div>
                             </div>
 
                             <div id="statusSection" class="hidden" style="margin-top: 16px;">
@@ -382,13 +384,25 @@
         document.getElementById('coverArtBtn').addEventListener('click', () => {
             const style = document.getElementById('promptInput').value.trim();
             if (!style) {
-                showToast('无风格信息可传递', 'error');
+                showToast('请先输入音乐风格描述', 'error');
                 return;
             }
             const prompt = `专辑封面设计，音乐风格：${style}，现代艺术风格，高品质数字插画`;
             sessionStorage.setItem('image_prompt', prompt);
             window.location.href = '../image/generate.html?from=music';
         });
+
+        // 输入区封面按钮（不需要等音乐生成）
+        function transferToCoverArt() {
+            const style = document.getElementById('promptInput').value.trim();
+            if (!style) {
+                showToast('请先输入音乐风格描述', 'error');
+                return;
+            }
+            const prompt = `专辑封面设计，音乐风格：${style}，现代艺术风格，高品质数字插画`;
+            sessionStorage.setItem('image_prompt', prompt);
+            window.location.href = '../image/generate.html?from=music';
+        }
     </script>
 </body>
 </html>
