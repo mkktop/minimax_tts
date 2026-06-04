@@ -238,8 +238,8 @@ async function listResources(userId, type, limit = 20, offset = 0) {
         sql += ' AND type = ?';
         params.push(type);
     }
-    sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-    params.push(limit, offset);
+    // LIMIT/OFFSET 直接拼接（已确保是整数），避免 prepared statement 不兼容
+    sql += ` ORDER BY created_at DESC LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}`;
     const [rows] = await db.execute(sql, params);
     // 解析 params JSON
     return rows.map(r => {
