@@ -797,6 +797,59 @@ select.form-input.hidden-native {
 .page-header {
     padding: 48px 0 32px;
     text-align: center;
+    position: relative;
+}
+
+/* 模块主题背景 */
+.page-header.module-tts {
+    background: linear-gradient(180deg, rgba(30, 58, 138, 0.3) 0%, var(--bg-dark) 100%);
+    border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+.page-header.module-tts::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url('../images/tts-page-bg.jpg') center/cover no-repeat;
+    opacity: 0.15;
+    z-index: 0;
+}
+.page-header.module-tts > * {
+    position: relative;
+    z-index: 1;
+}
+
+.page-header.module-image {
+    background: linear-gradient(180deg, rgba(107, 33, 168, 0.3) 0%, var(--bg-dark) 100%);
+    border-bottom: 1px solid rgba(168, 85, 247, 0.2);
+}
+.page-header.module-image::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url('../images/image-page-bg.jpg') center/cover no-repeat;
+    opacity: 0.15;
+    z-index: 0;
+}
+.page-header.module-image > * {
+    position: relative;
+    z-index: 1;
+}
+
+.page-header.module-music {
+    background: linear-gradient(180deg, rgba(88, 28, 135, 0.3) 0%, var(--bg-dark) 100%);
+    border-bottom: 1px solid rgba(192, 132, 252, 0.2);
+}
+.page-header.module-music::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url('../images/music-page-bg.jpg') center/cover no-repeat;
+    opacity: 0.15;
+    z-index: 0;
+}
+.page-header.module-music > * {
+    position: relative;
+    z-index: 1;
 }
 
 .page-title {
