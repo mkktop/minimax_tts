@@ -9,6 +9,8 @@
 
 let currentHistoryType = '';
 let historyContainer = null;
+let currentPage = 1;
+const PAGE_SIZE = 15;
 
 /**
  * 初始化历史记录区域
@@ -17,32 +19,37 @@ let historyContainer = null;
 function initResourceHistory(type) {
     currentHistoryType = type;
 
-    // 找到或创建容器
+    // 找到容器（HTML 中已预置，或自动创建）
     historyContainer = document.getElementById('resourceHistory');
     if (!historyContainer) {
-        // 在结果区域后面插入
-        const resultSection = document.querySelector('.result-section') || document.querySelector('.work-area');
-        if (resultSection) {
+        const outputPanel = document.querySelector('.output-panel');
+        if (outputPanel) {
             const div = document.createElement('div');
             div.id = 'resourceHistory';
             div.className = 'resource-history';
-            resultSection.appendChild(div);
+            outputPanel.parentElement.insertBefore(div, outputPanel.nextSibling);
             historyContainer = div;
+        } else {
+            const workArea = document.querySelector('.work-area');
+            if (workArea) {
+                const div = document.createElement('div');
+                div.id = 'resourceHistory';
+                div.className = 'resource-history';
+                workArea.appendChild(div);
+                historyContainer = div;
+            }
         }
     }
 
     // 监听登录状态变化
     window.addEventListener('authChanged', () => {
+        currentPage = 1;
         refreshResourceHistory();
     });
 
-    // 如果 auth 已经完成（竞态兜底），直接加载
+    // 竞态兜底：auth 已经完成
     if (window.authChecked && window.currentUser) {
         refreshResourceHistory();
-    } else if (!window.authChecked) {
-        // auth 还没完成，refreshResourceHistory 会在 authChanged 触发时调用
-    } else {
-        // auth 已完成但未登录，不加载
     }
 }
 
@@ -57,7 +64,8 @@ async function refreshResourceHistory() {
     }
 
     try {
-        const res = await fetch(`/api/resources?type=${currentHistoryType}&limit=15`, {
+        const offset = (currentPage - 1) * PAGE_SIZE;
+        const res = await fetch(`/api/resources?type=${currentHistoryType}&limit=${PAGE_SIZE}&offset=${offset}`, {
             credentials: 'include'
         });
         const data = await res.json();
@@ -71,22 +79,27 @@ async function refreshResourceHistory() {
         const iconMap = { tts: '🎵', image: '🖼️', music: '🎶' };
         const icon = iconMap[currentHistoryType] || '📄';
 
+        // 计算总页数（用返回数量判断是否有下一页）
+        const hasMore = resources.length === PAGE_SIZE;
+
         let html = `
             <div class="resource-history-title">
-                ${icon} 历史记录 <span class="count">${resources.length} 条</span>
+                ${icon} 历史记录
+                <span class="count">第 ${currentPage} 页</span>
             </div>
         `;
 
         if (resources.length === 0) {
-            html += `<div class="resource-empty">暂无记录，生成后会自动保存在这里</div>`;
+            html += `<div class="resource-empty">暂无记录，生成后会自动保存在这里（保留 7 天）</div>`;
         } else {
             html += `<div class="resource-history-list">`;
             resources.forEach(r => {
                 const prompt = r.prompt || r.model || '未知';
-                const shortPrompt = prompt.length > 50 ? prompt.substring(0, 50) + '...' : prompt;
+                const shortPrompt = prompt.length > 40 ? prompt.substring(0, 40) + '...' : prompt;
                 const time = formatTime(r.created_at);
                 const size = formatSize(r.file_size);
-                const meta = [r.model, size, time].filter(Boolean).join(' · ');
+                const metaParts = [r.voice_id, r.model && r.model !== 'async' ? r.model : '', size, time].filter(Boolean);
+                const meta = metaParts.join(' · ');
 
                 html += `
                     <div class="resource-item" data-id="${r.id}">
@@ -107,11 +120,42 @@ async function refreshResourceHistory() {
                 `;
             });
             html += `</div>`;
+
+            // 分页按钮
+            if (currentPage > 1 || hasMore) {
+                html += `<div class="resource-pagination">`;
+                if (currentPage > 1) {
+                    html += `<button class="btn btn-secondary btn-sm" onclick="historyPrevPage()">← 上一页</button>`;
+                }
+                html += `<span class="resource-page-info">第 ${currentPage} 页</span>`;
+                if (hasMore) {
+                    html += `<button class="btn btn-secondary btn-sm" onclick="historyNextPage()">下一页 →</button>`;
+                }
+                html += `</div>`;
+            }
         }
 
         historyContainer.innerHTML = html;
     } catch (err) {
         console.error('[History] 加载失败:', err);
+    }
+}
+
+/**
+ * 下一页
+ */
+function historyNextPage() {
+    currentPage++;
+    refreshResourceHistory();
+}
+
+/**
+ * 上一页
+ */
+function historyPrevPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        refreshResourceHistory();
     }
 }
 
@@ -125,23 +169,16 @@ async function playResource(id) {
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
 
-        // 找到或创建 audio 播放器
         let audio = document.getElementById('historyAudio');
         if (!audio) {
             audio = document.createElement('audio');
             audio.id = 'historyAudio';
             audio.controls = true;
-            audio.style.cssText = 'width:100%;margin-top:8px;';
-            // 插入到当前 item 后面
+            audio.style.cssText = 'width:100%;margin-top:8px;border-radius:8px;';
+            historyContainer.appendChild(audio);
         }
         audio.src = url;
         audio.play().catch(() => {});
-
-        // 在历史列表下方显示播放器
-        const list = historyContainer.querySelector('.resource-history-list');
-        if (list && !list.nextElementSibling?.matches('audio')) {
-            historyContainer.appendChild(audio);
-        }
     } catch (err) {
         if (typeof showToast === 'function') showToast('播放失败', 'error');
     }
@@ -157,7 +194,6 @@ async function previewResource(id) {
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
 
-        // 在页面结果区显示图片
         const resultContent = document.getElementById('resultContent') || document.getElementById('resultImage');
         if (resultContent) {
             resultContent.innerHTML = `<img src="${url}" style="max-width:100%;border-radius:8px;">`;
