@@ -240,10 +240,10 @@
             document.getElementById(target).value = text;
         }
 
-        // 模式切换
-        document.querySelectorAll('.model-option').forEach(opt => {
+        // 模式切换（只用 [data-mode] 选择器，不影响模型选择）
+        document.querySelectorAll('[data-mode]').forEach(opt => {
             opt.addEventListener('click', function() {
-                document.querySelectorAll('.model-option').forEach(o => o.classList.remove('selected'));
+                document.querySelectorAll('[data-mode]').forEach(o => o.classList.remove('selected'));
                 this.classList.add('selected');
                 currentMode = this.dataset.mode;
                 document.getElementById('quickSection').classList.toggle('hidden', currentMode !== 'quick');
@@ -259,7 +259,7 @@
             if (params.get('from') === 'tts') {
                 const ttsLyrics = sessionStorage.getItem('tts_lyrics');
                 if (ttsLyrics) {
-                    document.querySelectorAll('.model-option').forEach(o => o.classList.remove('selected'));
+                    document.querySelectorAll('[data-mode]').forEach(o => o.classList.remove('selected'));
                     document.querySelector('[data-mode="advanced"]').classList.add('selected');
                     currentMode = 'advanced';
                     document.getElementById('quickSection').classList.add('hidden');
@@ -274,7 +274,7 @@
             if (params.get('from') === 'lyrics') {
                 const coverLyrics = sessionStorage.getItem('cover_lyrics');
                 if (coverLyrics) {
-                    document.querySelectorAll('.model-option').forEach(o => o.classList.remove('selected'));
+                    document.querySelectorAll('[data-mode]').forEach(o => o.classList.remove('selected'));
                     document.querySelector('[data-mode="advanced"]').classList.add('selected');
                     currentMode = 'advanced';
                     document.getElementById('quickSection').classList.add('hidden');
