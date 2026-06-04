@@ -1,11 +1,12 @@
 /**
- * MiniMax TTS 全局样式
+ * MiniMax Studio 全局样式
  * 现代科技风格设计系统
+ * 支持多主题：TTS（青蓝）、Image（品红）、Music（紫橙）
  */
 
-/* ============ CSS 变量 ============ */
+/* ============ CSS 变量（默认 - TTS 主题） ============ */
 :root {
-    /* 主色系 - 科技蓝紫渐变 */
+    /* 主色系 - TTS: 科技蓝紫渐变（默认） */
     --primary: #4F46E5;
     --primary-light: #6366F1;
     --primary-dark: #3730A3;
@@ -55,6 +56,32 @@
     --transition-fast: 0.15s ease;
     --transition-normal: 0.3s ease;
     --transition-slow: 0.5s ease;
+}
+
+/* ============ 模块主题：Image（品红/玫红） ============ */
+:root.theme-image {
+    --primary: #EC4899;
+    --primary-light: #F472B6;
+    --primary-dark: #BE185D;
+    --secondary: #F43F5E;
+    --secondary-light: #FB7185;
+    --accent-cyan: #EC4899;
+    --shadow-glow: 0 0 40px rgba(236, 72, 153, 0.3);
+    --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    --gradient-card: linear-gradient(180deg, rgba(236, 72, 153, 0.1) 0%, rgba(244, 63, 94, 0.05) 100%);
+}
+
+/* ============ 模块主题：Music（紫罗兰/琥珀金） ============ */
+:root.theme-music {
+    --primary: #A855F7;
+    --primary-light: #C084FC;
+    --primary-dark: #7E22CE;
+    --secondary: #F59E0B;
+    --secondary-light: #FCD34D;
+    --accent-cyan: #A855F7;
+    --shadow-glow: 0 0 40px rgba(168, 85, 247, 0.3);
+    --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    --gradient-card: linear-gradient(180deg, rgba(168, 85, 247, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
 }
 
 /* ============ 重置样式 ============ */
