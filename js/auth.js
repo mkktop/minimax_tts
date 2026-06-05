@@ -46,29 +46,22 @@ async function checkAuth() {
  */
 function showAuthenticatedUI(user, hasApiKey) {
     const authSection = document.getElementById('authSection');
-    const apiKeySection = document.getElementById('apiKeySection');
     const loginSection = document.getElementById('loginSection');
     const userDisplay = document.getElementById('userDisplay');
 
     // 用 style.display 直接控制，更可靠
     if (authSection) authSection.style.display = 'flex';
     if (loginSection) loginSection.style.display = 'none';
-    if (apiKeySection) apiKeySection.style.display = 'flex';
 
     if (userDisplay) {
         userDisplay.textContent = user.username;
     }
 
-    // 更新 API Key 显示文字
-    const apiKeyDisplay = document.getElementById('apiKeyDisplay');
-    if (apiKeyDisplay) {
-        if (hasApiKey) {
-            apiKeyDisplay.textContent = 'API Key 已设置 ✓';
-            apiKeyDisplay.classList.add('set');
-        } else {
-            apiKeyDisplay.textContent = '未设置 API Key';
-            apiKeyDisplay.classList.remove('set');
-        }
+    // 更新设置按钮的提示文字
+    const settingsBtn = authSection ? authSection.querySelector('.btn-icon') : null;
+    if (settingsBtn) {
+        settingsBtn.title = hasApiKey ? 'API Key 已设置，点击修改' : '设置 API Key';
+        settingsBtn.style.opacity = hasApiKey ? '0.6' : '1';
     }
 }
 

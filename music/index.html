@@ -23,11 +23,8 @@
             <div class="header-actions">
                 <div id="authSection" class="hidden">
                     <span id="userDisplay" class="user-display"></span>
+                    <button class="btn btn-icon" onclick="showApiKeyModal()" title="设置 API Key">⚙️</button>
                     <button class="btn btn-secondary btn-sm" onclick="logout()">退出</button>
-                </div>
-                <div id="apiKeySection" class="api-key-section hidden">
-                    <span id="apiKeyDisplay" class="api-key-display">未设置 API Key</span>
-                    <button class="btn btn-secondary btn-sm" onclick="showApiKeyModal()">设置</button>
                 </div>
                 <div id="loginSection" class="hidden">
                     <button class="btn btn-secondary btn-sm" onclick="showLoginModal()">登录</button>
