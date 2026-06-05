@@ -136,3 +136,39 @@ function ensureApiKey() {
 function initApiKey() {
     updateApiKeyDisplay();
 }
+
+/**
+ * 清除当前页面类型的所有历史记录
+ */
+async function clearAllHistory() {
+    if (!confirm('确定要清除所有历史记录吗？此操作不可恢复。')) return;
+    try {
+        const type = typeof currentHistoryType !== 'undefined' ? currentHistoryType : '';
+        const url = type
+            ? `/api/resources/all?type=${type}`
+            : '/api/resources/all';
+        const res = await fetch(url, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        const data = await res.json();
+        if (data.success) {
+            if (typeof showToast === 'function') {
+                showToast(`已清除 ${data.deleted} 条记录`, 'success');
+            }
+            if (typeof refreshResourceHistory === 'function') {
+                refreshResourceHistory();
+            }
+            hideApiKeyModal();
+        } else {
+            if (typeof showToast === 'function') {
+                showToast(data.error || '清除失败', 'error');
+            }
+        }
+    } catch (err) {
+        console.error('[API Key] 清除历史失败:', err);
+        if (typeof showToast === 'function') {
+            showToast('清除失败', 'error');
+        }
+    }
+}

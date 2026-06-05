@@ -137,6 +137,21 @@ router.get('/:id', async (req, res) => {
 });
 
 /**
+ * 删除当前用户所有资源（或指定类型）
+ * DELETE /api/resources/all?type=tts-http
+ */
+router.delete('/all', async (req, res) => {
+    try {
+        const { type } = req.query;
+        const count = await db.deleteAllResources(req.userId, type || null);
+        res.json({ success: true, deleted: count });
+    } catch (err) {
+        console.error('[Resources] 批量删除失败:', err);
+        res.status(500).json({ success: false, error: '删除失败' });
+    }
+});
+
+/**
  * 删除单个资源
  * DELETE /api/resources/:id
  */

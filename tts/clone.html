@@ -242,7 +242,7 @@
     <!-- API Key Modal -->
     <div id="apiKeyModal" class="modal-overlay hidden">
         <div class="modal">
-            <h3 class="modal-title">设置 API Key</h3>
+            <h3 class="modal-title">⚙️ 设置</h3>
             <div class="form-group">
                 <label class="form-label">MiniMax API Key</label>
                 <input type="password" id="apiKeyInput" class="form-input" placeholder="输入你的 API Key">
@@ -250,6 +250,9 @@
             <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
                 <button class="btn btn-secondary" onclick="hideApiKeyModal()">取消</button>
                 <button class="btn btn-primary" onclick="saveApiKey()">保存</button>
+            </div>
+            <div style="border-top: 1px solid var(--border-color); margin-top: 20px; padding-top: 16px;">
+                <button class="btn btn-secondary" style="width: 100%; color: #ef4444; border-color: rgba(239,68,68,0.3);" onclick="clearAllHistory()">🗑️ 清除所有历史记录</button>
             </div>
         </div>
     </div>

@@ -288,6 +288,21 @@ async function cleanupExpiredResources(days = 7) {
     return result.affectedRows;
 }
 
+/**
+ * 删除用户所有资源（或指定类型的全部资源）
+ */
+async function deleteAllResources(userId, type) {
+    const db = await getPool();
+    let sql = 'DELETE FROM minimax_resources WHERE user_id = ?';
+    const params = [userId];
+    if (type) {
+        sql += ' AND type = ?';
+        params.push(type);
+    }
+    const [result] = await db.execute(sql, params);
+    return result.affectedRows;
+}
+
 module.exports = {
     getPool,
     initTables,
@@ -304,5 +319,6 @@ module.exports = {
     listResources,
     getResource,
     deleteResource,
+    deleteAllResources,
     cleanupExpiredResources
 };
