@@ -815,56 +815,66 @@ select.form-input.hidden-native {
     position: relative;
 }
 
-/* 模块主题背景 */
-.page-header.module-tts {
-    background: linear-gradient(180deg, rgba(30, 58, 138, 0.3) 0%, var(--bg-dark) 100%);
-    border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+/* 模块主题背景 — 覆盖整个页面 */
+.page:has(.module-tts) {
+    background: url('../images/tts-page-bg.jpg') center top/cover no-repeat fixed;
 }
-.page-header.module-tts::before {
+.page:has(.module-tts)::before {
     content: '';
-    position: absolute;
+    position: fixed;
     inset: 0;
-    background: url('../images/tts-page-bg.jpg') center/cover no-repeat;
-    opacity: 0.15;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.7) 0%, rgba(15, 23, 42, 0.92) 40%, var(--bg-dark) 100%);
     z-index: 0;
 }
-.page-header.module-tts > * {
+.page:has(.module-tts) > * {
     position: relative;
     z-index: 1;
+}
+
+.page:has(.module-image) {
+    background: url('../images/image-page-bg.jpg') center top/cover no-repeat fixed;
+}
+.page:has(.module-image)::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.7) 0%, rgba(15, 23, 42, 0.92) 40%, var(--bg-dark) 100%);
+    z-index: 0;
+}
+.page:has(.module-image) > * {
+    position: relative;
+    z-index: 1;
+}
+
+.page:has(.module-music) {
+    background: url('../images/music-page-bg.jpg') center top/cover no-repeat fixed;
+}
+.page:has(.module-music)::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.7) 0%, rgba(15, 23, 42, 0.92) 40%, var(--bg-dark) 100%);
+    z-index: 0;
+}
+.page:has(.module-music) > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* page-header 模块色覆盖（保留主题色边框和微调） */
+.page-header.module-tts {
+    background: linear-gradient(180deg, rgba(30, 58, 138, 0.3) 0%, transparent 100%);
+    border-bottom: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .page-header.module-image {
-    background: linear-gradient(180deg, rgba(107, 33, 168, 0.3) 0%, var(--bg-dark) 100%);
+    background: linear-gradient(180deg, rgba(107, 33, 168, 0.3) 0%, transparent 100%);
     border-bottom: 1px solid rgba(168, 85, 247, 0.2);
-}
-.page-header.module-image::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: url('../images/image-page-bg.jpg') center/cover no-repeat;
-    opacity: 0.15;
-    z-index: 0;
-}
-.page-header.module-image > * {
-    position: relative;
-    z-index: 1;
 }
 
 .page-header.module-music {
-    background: linear-gradient(180deg, rgba(88, 28, 135, 0.3) 0%, var(--bg-dark) 100%);
+    background: linear-gradient(180deg, rgba(88, 28, 135, 0.3) 0%, transparent 100%);
     border-bottom: 1px solid rgba(192, 132, 252, 0.2);
-}
-.page-header.module-music::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: url('../images/music-page-bg.jpg') center/cover no-repeat;
-    opacity: 0.15;
-    z-index: 0;
-}
-.page-header.module-music > * {
-    position: relative;
-    z-index: 1;
 }
 
 .page-title {
