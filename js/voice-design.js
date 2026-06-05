@@ -69,6 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initAudioPlayer();
     initTextCounters();
     loadSettings();
+    initResourceHistory('tts-voicedesign');
     // 自动保存
     ['promptInput', 'previewTextInput', 'voiceIdInput', 'aigcWatermark'].forEach(id => {
         const el = document.getElementById(id);
@@ -220,6 +221,32 @@ async function startDesign() {
         }
 
         showToast('音色设计成功！', 'success');
+
+        // 保存试听音频到数据库
+        if (audioBlob && window.currentUser) {
+            try {
+                const reader = new FileReader();
+                reader.onload = async function() {
+                    const base64 = reader.result.split(',')[1];
+                    try {
+                        await fetch('/api/resources', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                type: 'tts-voicedesign',
+                                fileBase64: base64,
+                                format: 'mp3',
+                                prompt: document.getElementById('promptInput').value.trim(),
+                                voiceId: generatedVoiceId
+                            })
+                        });
+                        refreshResourceHistory();
+                    } catch (e) { console.error('[VoiceDesign] 保存资源失败:', e); }
+                };
+                reader.readAsDataURL(audioBlob);
+            } catch (e) { console.error('[VoiceDesign] 保存失败:', e); }
+        }
 
     } catch (error) {
         console.error('Voice design error:', error);

@@ -150,6 +150,7 @@
     <script src="../js/api-key.js"></script>
     <script src="../js/music.js"></script>
     <script src="../js/custom-select.js"></script>
+    <script src="../js/resource-history.js"></script>
     <script>
         let currentLyrics = '';
 
@@ -232,6 +233,33 @@
                 setStatus('生成成功！', '点击右侧按钮复制或生成音乐', 'success');
                 showToast('歌词生成成功', 'success');
 
+                // 保存歌词到数据库
+                if (window.currentUser) {
+                    try {
+                        const textBlob = new Blob([lyricsText], { type: 'text/plain' });
+                        const reader = new FileReader();
+                        reader.onload = async function() {
+                            const base64 = reader.result.split(',')[1];
+                            try {
+                                await fetch('/api/resources', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    credentials: 'include',
+                                    body: JSON.stringify({
+                                        type: 'music-lyrics',
+                                        fileBase64: base64,
+                                        format: 'txt',
+                                        prompt: prompt || title || '歌词生成',
+                                        params: { mode, title }
+                                    })
+                                });
+                                refreshResourceHistory();
+                            } catch (e) { console.error('[Lyrics] 保存失败:', e); }
+                        };
+                        reader.readAsDataURL(textBlob);
+                    } catch (e) { console.error('[Lyrics] 保存失败:', e); }
+                }
+
             } catch (error) {
                 console.error('Lyrics API error:', error);
                 setStatus('生成失败', error.message, 'error');
@@ -286,6 +314,8 @@
                 showToast('已从语音合成页导入文本，可编辑后生成歌词', 'success');
             }
         }
+
+        initResourceHistory('music-lyrics');
     </script>
 </body>
 </html>

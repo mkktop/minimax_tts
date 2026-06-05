@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initDragDrop();
     loadCustomVoices();
     loadSettings();
+    initResourceHistory('tts-clone');
     // 监听变化自动保存
     ['voiceIdInput','testTextInput','modelSelect','languageBoostSelect',
      'needNoiseReduction','needVolumeNormalization','aigcWatermark'].forEach(id => {
@@ -381,6 +382,35 @@ async function startClone() {
         // 添加到自定义音色列表
         addCustomVoice(voiceId, model);
         showToast('音色复刻成功！', 'success');
+
+        // 保存试听音频到数据库
+        if (cloneData?.demo_audio && window.currentUser) {
+            try {
+                const audioRes = await fetch(cloneData.demo_audio);
+                const audioBlob = await audioRes.blob();
+                const reader = new FileReader();
+                reader.onload = async function() {
+                    const base64 = reader.result.split(',')[1];
+                    try {
+                        await fetch('/api/resources', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                type: 'tts-clone',
+                                fileBase64: base64,
+                                format: 'mp3',
+                                model: model || 'speech-2.8-hd',
+                                prompt: '音色复刻: ' + voiceId,
+                                voiceId: voiceId
+                            })
+                        });
+                        refreshResourceHistory();
+                    } catch (e) { console.error('[Clone] 保存资源失败:', e); }
+                };
+                reader.readAsDataURL(audioBlob);
+            } catch (e) { console.error('[Clone] 下载试听音频失败:', e); }
+        }
 
     } catch (error) {
         console.error('Clone error:', error);

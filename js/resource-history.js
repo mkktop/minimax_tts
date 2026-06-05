@@ -78,7 +78,11 @@ async function refreshResourceHistory() {
         }
 
         const resources = data.data || [];
-        const iconMap = { tts: '🎵', image: '🖼️', music: '🎶' };
+        const iconMap = {
+            tts: '🎵', 'tts-http': '🎵', 'tts-streaming': '🎤', 'tts-async': '🎵',
+            'tts-clone': '🎭', 'tts-voicedesign': '🎨',
+            image: '🖼️', music: '🎶', 'music-lyrics': '📝'
+        };
         const icon = iconMap[currentHistoryType] || '📄';
 
         // 计算总页数（用返回数量判断是否有下一页）
@@ -113,7 +117,9 @@ async function refreshResourceHistory() {
                         <div class="resource-item-actions">
                             ${currentHistoryType === 'image'
                                 ? `<button onclick="previewResource('${r.id}')">预览</button>`
-                                : `<button onclick="playResource('${r.id}')">播放</button>`
+                                : currentHistoryType === 'music-lyrics'
+                                    ? `<button onclick="viewTextResource('${r.id}')">查看</button>`
+                                    : `<button onclick="playResource('${r.id}')">播放</button>`
                             }
                             <button onclick="downloadResource('${r.id}', '${r.format || 'bin'}')">下载</button>
                             <button class="btn-delete" onclick="deleteResource('${r.id}')">删除</button>
@@ -206,6 +212,35 @@ async function previewResource(id) {
         }
     } catch (err) {
         if (typeof showToast === 'function') showToast('预览失败', 'error');
+    }
+}
+
+/**
+ * 查看文本资源（歌词等）
+ */
+async function viewTextResource(id) {
+    try {
+        const res = await fetch(`/api/resources/${id}/download`, { credentials: 'include' });
+        if (!res.ok) throw new Error('下载失败');
+        const text = await res.text();
+
+        // 在页面内显示歌词内容
+        let viewDiv = document.getElementById('lyricsViewDiv');
+        if (!viewDiv) {
+            viewDiv = document.createElement('div');
+            viewDiv.id = 'lyricsViewDiv';
+            viewDiv.style.cssText = 'margin-top:12px;padding:16px;background:var(--bg-dark);border-radius:8px;white-space:pre-wrap;word-break:break-word;font-size:0.875rem;line-height:1.8;max-height:300px;overflow-y:auto;position:relative;';
+            historyContainer.appendChild(viewDiv);
+        }
+        viewDiv.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <strong>📝 歌词内容</strong>
+                <button class="btn btn-secondary btn-sm" onclick="this.closest('#lyricsViewDiv').remove()">关闭</button>
+            </div>
+            <div>${escapeHtml(text)}</div>
+        `;
+    } catch (err) {
+        if (typeof showToast === 'function') showToast('查看失败', 'error');
     }
 }
 

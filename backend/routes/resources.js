@@ -12,6 +12,36 @@ const router = express.Router();
 router.use(requireLogin);
 
 /**
+ * 前端上传保存资源（用于流式合成等无法在后端直接保存的场景）
+ * POST /api/resources
+ * body: { type, fileBase64, format, model, prompt, voiceId, params }
+ */
+router.post('/', async (req, res) => {
+    try {
+        const { type, fileBase64, format, model, prompt, voiceId, params } = req.body;
+        if (!type || !fileBase64) {
+            return res.status(400).json({ success: false, error: '缺少 type 或 fileBase64' });
+        }
+
+        const fileData = Buffer.from(fileBase64, 'base64');
+        const id = require('uuid').v4();
+
+        await require('../db/database').saveResource({
+            id,
+            userId: req.userId,
+            type,
+            fileData,
+            meta: { model: model || '', prompt: prompt || '', voiceId: voiceId || '', format: format || 'mp3', params: params || {} }
+        });
+
+        res.json({ success: true, data: { id } });
+    } catch (err) {
+        console.error('[Resources] 上传保存失败:', err);
+        res.status(500).json({ success: false, error: '保存失败' });
+    }
+});
+
+/**
  * 获取当前用户的资源列表（不含文件数据）
  * GET /api/resources?type=tts&limit=20&offset=0
  */

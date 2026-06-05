@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (el) el.addEventListener('change', saveSettings);
         if (el) el.addEventListener('input', () => { clearTimeout(el._saveTimer); el._saveTimer = setTimeout(saveSettings, 500); });
     });
-    initResourceHistory('tts');
+    initResourceHistory('tts-streaming');
 });
 
 function initApiKey() {
@@ -629,6 +629,57 @@ function finishSynthesis(extraInfo) {
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.close();
     }
+
+    // 保存音频到数据库
+    saveStreamingAudio(extraInfo);
+}
+
+/**
+ * 保存流式合成音频到数据库
+ */
+async function saveStreamingAudio(extraInfo) {
+    try {
+        if (!window.currentUser || pendingChunks.length === 0) return;
+
+        const format = document.getElementById('formatSelect').value;
+        const model = document.querySelector('.model-option.selected')?.dataset.model || 'speech-2.8-hd';
+        const text = document.getElementById('textInput').value.trim();
+        const voiceId = window.getSelectedVoiceId ? window.getSelectedVoiceId() : '';
+
+        // 收集所有音频 chunk 为一个 Blob，然后转 base64
+        const mimeType = getMimeType(format);
+        const blob = new Blob(pendingChunks, { type: mimeType });
+        const reader = new FileReader();
+        reader.onload = async function() {
+            const base64 = reader.result.split(',')[1]; // 去掉 data:xxx;base64, 前缀
+            try {
+                const res = await fetch('/api/resources', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        type: 'tts-streaming',
+                        fileBase64: base64,
+                        format: format,
+                        model: model,
+                        prompt: text,
+                        voiceId: voiceId,
+                        params: { extraInfo }
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    console.log('[Streaming] 资源已保存, id:', data.data.id);
+                    refreshResourceHistory();
+                }
+            } catch (err) {
+                console.error('[Streaming] 保存资源失败:', err);
+            }
+        };
+        reader.readAsDataURL(blob);
+    } catch (err) {
+        console.error('[Streaming] saveStreamingAudio 失败:', err);
+    }
 }
 
 function endStreaming(extraInfo) {
@@ -652,6 +703,9 @@ function endStreaming(extraInfo) {
     showToast('边收边播完成', 'success');
 
     if (subtitleEntries.length > 0) renderSubtitles();
+
+    // 保存音频到数据库
+    saveStreamingAudio(extraInfo);
 }
 
 function renderSubtitles() {

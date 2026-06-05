@@ -633,7 +633,7 @@ app.post('/api/tts/http', requireAuth, async (req, res) => {
             try {
                 const audioFormat = audio_setting?.format || 'mp3';
                 const audioBuffer = output_format === 'hex' ? hexToBuffer(response.data.data.audio) : Buffer.from(response.data.data.audio, 'base64');
-                const resourceId = saveResourceAsync(req.userId, 'tts', audioBuffer, {
+                const resourceId = saveResourceAsync(req.userId, 'tts-http', audioBuffer, {
                     model,
                     prompt: text,
                     voiceId: voice_setting?.voice_id,
@@ -756,7 +756,7 @@ app.get('/api/tts/async/download', requireAuth, async (req, res) => {
         // 保存资源到数据库
         if (req.userId && response.data) {
             try {
-                const resourceId = saveResourceAsync(req.userId, 'tts', Buffer.from(response.data), {
+                const resourceId = saveResourceAsync(req.userId, 'tts-async', Buffer.from(response.data), {
                     model: 'async',
                     format: 'mp3',
                     params: { file_id }
