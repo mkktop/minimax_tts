@@ -5,35 +5,65 @@
 
 /* ============ 全页面背景图 ============ */
 body:has(.module-hero-tts) {
-    background: url('../images/tts-module-bg.jpg') center top/cover no-repeat fixed;
+    position: relative;
+    background: var(--bg-dark);
+    isolation: isolate;
 }
 body:has(.module-hero-tts)::before {
     content: '';
     position: fixed;
     inset: 0;
-    background: linear-gradient(180deg, rgba(15, 23, 42, 0.7) 0%, rgba(15, 23, 42, 0.92) 40%, var(--bg-dark) 100%);
+    background: url('../images/tts-module-bg.jpg') center top/cover no-repeat;
+    opacity: 0.3;
+    z-index: -2;
+}
+body:has(.module-hero-tts)::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.5) 0%, rgba(15, 23, 42, 0.9) 40%, var(--bg-dark) 100%);
     z-index: -1;
 }
 
 body:has(.module-hero-image) {
-    background: url('../images/image-module-bg.jpg') center top/cover no-repeat fixed;
+    position: relative;
+    background: var(--bg-dark);
+    isolation: isolate;
 }
 body:has(.module-hero-image)::before {
     content: '';
     position: fixed;
     inset: 0;
-    background: linear-gradient(180deg, rgba(15, 23, 42, 0.7) 0%, rgba(15, 23, 42, 0.92) 40%, var(--bg-dark) 100%);
+    background: url('../images/image-module-bg.jpg') center top/cover no-repeat;
+    opacity: 0.3;
+    z-index: -2;
+}
+body:has(.module-hero-image)::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.5) 0%, rgba(15, 23, 42, 0.9) 40%, var(--bg-dark) 100%);
     z-index: -1;
 }
 
 body:has(.module-hero-music) {
-    background: url('../images/music-module-bg.jpg') center top/cover no-repeat fixed;
+    position: relative;
+    background: var(--bg-dark);
+    isolation: isolate;
 }
 body:has(.module-hero-music)::before {
     content: '';
     position: fixed;
     inset: 0;
-    background: linear-gradient(180deg, rgba(15, 23, 42, 0.7) 0%, rgba(15, 23, 42, 0.92) 40%, var(--bg-dark) 100%);
+    background: url('../images/music-module-bg.jpg') center top/cover no-repeat;
+    opacity: 0.3;
+    z-index: -2;
+}
+body:has(.module-hero-music)::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.5) 0%, rgba(15, 23, 42, 0.9) 40%, var(--bg-dark) 100%);
     z-index: -1;
 }
 
