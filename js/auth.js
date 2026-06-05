@@ -339,3 +339,18 @@ async function logout() {
 document.addEventListener('DOMContentLoaded', function() {
     checkAuth();
 });
+
+// ============ 移动端汉堡菜单 ============
+function toggleNav() {
+    const nav = document.getElementById('mainNav');
+    if (nav) nav.classList.toggle('open');
+}
+
+// 点击页面其他区域关闭菜单
+document.addEventListener('click', function(e) {
+    const toggle = document.querySelector('.nav-toggle');
+    const nav = document.getElementById('mainNav');
+    if (nav && nav.classList.contains('open') && !nav.contains(e.target) && !toggle.contains(e.target)) {
+        nav.classList.remove('open');
+    }
+});

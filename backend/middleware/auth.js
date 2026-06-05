@@ -72,15 +72,20 @@ async function optionalAuth(req, res, next) {
  * 用于 /api/auth/apikey 等接口
  */
 async function requireLogin(req, res, next) {
-    if (!req.session || !req.session.userId) {
-        return res.status(401).json({
-            success: false,
-            error: '请先登录',
-            code: 'AUTH_REQUIRED'
-        });
+    try {
+        if (!req.session || !req.session.userId) {
+            return res.status(401).json({
+                success: false,
+                error: '请先登录',
+                code: 'AUTH_REQUIRED'
+            });
+        }
+        req.userId = req.session.userId;
+        next();
+    } catch (err) {
+        console.error('[Auth] requireLogin error:', err.message);
+        res.status(500).json({ success: false, error: '认证检查失败' });
     }
-    req.userId = req.session.userId;
-    next();
 }
 
 /**

@@ -621,6 +621,48 @@ app.post('/api/tts/http', requireAuth, async (req, res) => {
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');
             res.setHeader('Connection', 'keep-alive');
+
+            // 收集流式数据用于保存
+            const chunks = [];
+            response.data.on('data', (chunk) => {
+                chunks.push(chunk);
+            });
+
+            response.data.on('end', () => {
+                // 流结束后保存资源
+                if (req.userId && chunks.length > 0) {
+                    try {
+                        const fullData = Buffer.concat(chunks).toString();
+                        const audioFormat = audio_setting?.format || 'mp3';
+                        // 解析 SSE 事件提取音频数据
+                        const audioParts = [];
+                        fullData.split('\n').forEach(line => {
+                            if (line.startsWith('data:')) {
+                                try {
+                                    const evt = JSON.parse(line.slice(5));
+                                    if (evt.data?.audio) {
+                                        audioParts.push(evt.data.audio);
+                                    }
+                                } catch {}
+                            }
+                        });
+                        if (audioParts.length > 0) {
+                            const hexAudio = audioParts.join('');
+                            const audioBuffer = output_format === 'hex' ? hexToBuffer(hexAudio) : Buffer.from(hexAudio, 'hex');
+                            saveResourceAsync(req.userId, 'tts-http', audioBuffer, {
+                                model,
+                                prompt: text,
+                                voiceId: voice_setting?.voice_id,
+                                format: audioFormat,
+                                params: { voice_setting, audio_setting, stream: true }
+                            });
+                        }
+                    } catch (saveErr) {
+                        console.error('[Resource] TTS HTTP 流式保存失败:', saveErr.message);
+                    }
+                }
+            });
+
             response.data.pipe(res);
             return;
         }
@@ -1366,6 +1408,28 @@ app.post('/api/music/generate', requireAuth, async (req, res) => {
 
         if (stream) {
             res.setHeader('Content-Type', 'audio/mpeg');
+
+            // 收集流式数据用于保存
+            const chunks = [];
+            response.data.on('data', (chunk) => {
+                chunks.push(chunk);
+            });
+            response.data.on('end', () => {
+                if (req.userId && chunks.length > 0) {
+                    try {
+                        const audioBuffer = Buffer.concat(chunks);
+                        saveResourceAsync(req.userId, 'music', audioBuffer, {
+                            model,
+                            prompt,
+                            format: fmt || 'mp3',
+                            params: { lyrics, audio_setting, is_instrumental, isCover }
+                        });
+                    } catch (saveErr) {
+                        console.error('[Resource] Music 流式保存失败:', saveErr.message);
+                    }
+                }
+            });
+
             response.data.pipe(res);
             return;
         }
