@@ -68,7 +68,7 @@ async function initTables() {
         CREATE TABLE IF NOT EXISTS minimax_resources (
             id         VARCHAR(36) PRIMARY KEY,
             user_id    VARCHAR(36) NOT NULL,
-            type       ENUM('tts','image','music') NOT NULL,
+            type       VARCHAR(30) NOT NULL,
             model      VARCHAR(100),
             prompt     TEXT,
             voice_id   VARCHAR(100),

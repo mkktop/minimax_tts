@@ -1200,11 +1200,13 @@ app.post('/api/image/generate', requireAuth, async (req, res) => {
         const imageResult = { success: true, data: response.data };
 
         // 保存资源到数据库
-        if (response.data?.data?.image_urls && req.userId) {
+        if (req.userId) {
             try {
-                const firstImage = response.data.data.image_urls[0];
+                // API 可能返回 image_base64（response_format=base64）或 image_urls（URL 列表）
+                const base64List = response.data?.data?.image_base64 || [];
+                const urlList = response.data?.data?.image_urls || [];
+                const firstImage = base64List[0] || urlList[0];
                 if (firstImage) {
-                    // base64 图片：解码保存
                     const imageBuffer = Buffer.from(firstImage, 'base64');
                     const resourceId = saveResourceAsync(req.userId, 'image', imageBuffer, {
                         model,
