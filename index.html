@@ -38,28 +38,9 @@
         </div>
     </header>
 
-    <!-- Hero Section - 全屏背景轮播 -->
+    <!-- Hero Section - 全屏随机背景 -->
     <section class="hero">
-        <div class="hero-bg-carousel">
-            <div class="carousel-track">
-                <div class="carousel-slide active" style="background-image: url('images/hero-bg.jpg');"></div>
-                <div class="carousel-slide" style="background-image: url('images/hero-bg-1.jpg');"></div>
-                <div class="carousel-slide" style="background-image: url('images/hero-bg-2.jpg');"></div>
-                <div class="carousel-slide" style="background-image: url('images/hero-bg-3.jpg');"></div>
-                <div class="carousel-slide" style="background-image: url('images/hero-bg-4.jpg');"></div>
-                <div class="carousel-slide" style="background-image: url('images/hero-bg-5.jpg');"></div>
-            </div>
-            <div class="hero-overlay"></div>
-        </div>
-
-        <div class="carousel-dots">
-            <span class="carousel-dot active" data-index="0"></span>
-            <span class="carousel-dot" data-index="1"></span>
-            <span class="carousel-dot" data-index="2"></span>
-            <span class="carousel-dot" data-index="3"></span>
-            <span class="carousel-dot" data-index="4"></span>
-            <span class="carousel-dot" data-index="5"></span>
-        </div>
+        <div class="hero-bg"></div>
 
         <div class="container hero-content">
             <div class="hero-badge">
@@ -195,61 +176,21 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             updateApiKeyDisplay();
+
+            // 随机选择一张背景图
+            const images = [
+                'images/hero-bg.jpg',
+                'images/hero-bg-1.jpg',
+                'images/hero-bg-2.jpg',
+                'images/hero-bg-3.jpg',
+                'images/hero-bg-4.jpg',
+                'images/hero-bg-5.jpg'
+            ];
+            const bg = document.querySelector('.hero-bg');
+            if (bg) {
+                bg.style.backgroundImage = `url('${images[Math.floor(Math.random() * images.length)]}')`;
+            }
         });
-
-        // ============ Hero 背景图轮播 ============
-        (function initCarousel() {
-            const slides = document.querySelectorAll('.hero-bg-carousel .carousel-slide');
-            const dots = document.querySelectorAll('.carousel-dots .carousel-dot');
-            if (slides.length === 0) return;
-
-            let currentIndex = 0;
-            const totalSlides = slides.length;
-            let autoPlayTimer = null;
-            let isPaused = false;
-
-            function showSlide(index) {
-                slides.forEach(s => s.classList.remove('active'));
-                dots.forEach(d => d.classList.remove('active'));
-                slides[index].classList.add('active');
-                dots[index].classList.add('active');
-                currentIndex = index;
-            }
-
-            function nextSlide() {
-                showSlide((currentIndex + 1) % totalSlides);
-            }
-
-            function startAutoPlay() {
-                autoPlayTimer = setInterval(() => {
-                    if (!isPaused) nextSlide();
-                }, 5000);
-            }
-
-            dots.forEach(dot => {
-                dot.addEventListener('click', function() {
-                    const index = parseInt(this.dataset.index);
-                    showSlide(index);
-                });
-            });
-
-            const hero = document.querySelector('.hero');
-            if (hero) {
-                hero.addEventListener('mouseenter', () => isPaused = true);
-                hero.addEventListener('mouseleave', () => isPaused = false);
-            }
-
-            document.addEventListener('keydown', function(e) {
-                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-                if (e.key === 'ArrowLeft') {
-                    showSlide((currentIndex - 1 + totalSlides) % totalSlides);
-                } else if (e.key === 'ArrowRight') {
-                    nextSlide();
-                }
-            });
-
-            startAutoPlay();
-        })();
     </script>
 </body>
 </html>
