@@ -446,10 +446,16 @@ async function downloadAudio() {
         return;
     }
 
-    showToast('正在下载音频...', 'info');
+    const format = document.getElementById('formatSelect').value;
+    const extMap = { 'mp3': 'mp3', 'wav': 'wav', 'flac': 'flac', 'pcm': 'pcm', 'opus': 'opus' };
+
+    // opus 选项：直接让后端转码为 ogg/opus（后端 format=opus 触发 ffmpeg）
+    const url = `/api/tts/async/download?file_id=${currentFileId}${format === 'opus' ? '&format=opus' : ''}`;
+
+    showToast(format === 'opus' ? '正在转码为 Opus 16kHz 单声道...' : '正在下载音频...', 'info');
 
     try {
-        const response = await fetch(`/api/tts/async/download?file_id=${currentFileId}`, {
+        const response = await fetch(url, {
             headers: {
                 'x-api-key': apiKey
             }
@@ -459,29 +465,13 @@ async function downloadAudio() {
             throw new Error('下载失败');
         }
 
-        let blob = await response.blob();
-        const format = document.getElementById('formatSelect').value;
-        const extMap = { 'mp3': 'mp3', 'wav': 'wav', 'flac': 'flac', 'pcm': 'pcm', 'opus': 'opus' };
-
-        // opus 选项：把下载到的 mp3 转码为 Opus (16kHz mono) 再下载
-        if (format === 'opus') {
-            if (!window.AudioConverter?.isOpusSupported?.()) {
-                throw new Error('当前浏览器不支持 Opus 编码，请用 Chrome / Edge / Firefox');
-            }
-            showToast('正在转码为 Opus 16kHz 单声道...', 'info');
-            blob = await window.AudioConverter.convertToOpus(blob, {
-                sampleRate: 16000,
-                channels: 1,
-                bitsPerSecond: 32000
-            });
-        }
-
-        const url = URL.createObjectURL(blob);
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
+        a.href = objectUrl;
         a.download = `minimax_async_${currentTaskId}.${extMap[format] || 'mp3'}`;
         a.click();
-        URL.revokeObjectURL(url);
+        URL.revokeObjectURL(objectUrl);
 
         showToast('下载成功', 'success');
 

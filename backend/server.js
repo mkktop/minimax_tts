@@ -16,6 +16,7 @@ const FormData = require('form-data');
 const WebSocket = require('ws');
 const session = require('express-session');
 const { v4: uuidv4 } = require('uuid');
+const { spawn } = require('child_process');
 
 // 数据库与认证模块
 const db = require('./db/database');
@@ -28,6 +29,46 @@ const PORT = process.env.PORT || 3000;
 
 // 创建 HTTP 服务器（用于 WebSocket 升级）
 const server = http.createServer(app);
+
+/**
+ * 调用系统 ffmpeg 转码
+ * @param {Buffer} inputBuffer  输入音频二进制
+ * @param {string[]} args        ffmpeg 参数（不含输入文件名，固定从 stdin 读）
+ * @returns {Promise<Buffer>}    输出音频二进制
+ */
+function ffmpegConvert(inputBuffer, args) {
+    return new Promise((resolve, reject) => {
+        const proc = spawn('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-i', 'pipe:0', ...args, 'pipe:1']);
+        const chunks = [];
+        proc.stdout.on('data', c => chunks.push(c));
+        proc.on('error', reject);
+        proc.on('close', code => {
+            if (code === 0) resolve(Buffer.concat(chunks));
+            else reject(new Error(`ffmpeg 退出码 ${code}`));
+        });
+        proc.stdin.on('error', () => {}); // 子进程可能主动关闭
+        proc.stdin.write(inputBuffer);
+        proc.stdin.end();
+    });
+}
+
+/**
+ * mp3 → ogg/opus (16kHz 单声道 32kbps，适配小智 ESP32 协议)
+ */
+async function mp3ToOggOpus(mp3Buffer) {
+    return ffmpegConvert(mp3Buffer, [
+        '-f', 'mp3',
+        '-c:a', 'libopus',
+        '-ar', '16000',
+        '-ac', '1',
+        '-b:a', '32k',
+        '-application', 'voip',
+        '-vbr', 'on',
+        '-compression_level', '10',
+        '-f', 'ogg'
+    ]);
+}
+
 
 // 文件上传配置
 const upload = multer({
@@ -587,8 +628,10 @@ app.post('/api/tts/http', requireAuth, async (req, res) => {
             return res.status(400).json({ success: false, error: 'text 长度不能超过 10000 字符' });
         }
 
-        // 校验 audio_setting.format（MiniMax T2A v2 仅支持 mp3/pcm/flac/wav）
-        const validFormats = ['mp3', 'pcm', 'flac', 'wav'];
+        // 校验 audio_setting.format（MiniMax T2A v2 本身仅支持 mp3/pcm/flac/wav；
+        // 我们额外支持 opus，由后端按 16kHz/mono/mp3 调 API，收到后用 ffmpeg 重封装为 ogg/opus）
+        const validFormats = ['mp3', 'pcm', 'flac', 'wav', 'opus'];
+        const wantOpus = audio_setting?.format === 'opus';
         if (audio_setting?.format && !validFormats.includes(audio_setting.format)) {
             return res.status(400).json({
                 success: false,
@@ -600,7 +643,14 @@ app.post('/api/tts/http', requireAuth, async (req, res) => {
             model,
             stream,
             voice_setting: voice_setting || { voice_id: 'male-qn-qingse', speed: 1, vol: 1, pitch: 0 },
-            audio_setting: audio_setting || { sample_rate: 32000, bitrate: 128000, format: 'mp3', channel: 1 },
+            // opus 选项：后端强制按 16kHz / 单声道 / mp3 调 API，收到后再用 ffmpeg 重封装为 ogg/opus
+            audio_setting: (() => {
+                const base = audio_setting || { sample_rate: 32000, bitrate: 128000, format: 'mp3', channel: 1 };
+                if (wantOpus) {
+                    return { ...base, sample_rate: 16000, channel: 1, format: 'mp3' };
+                }
+                return base;
+            })(),
             subtitle_enable,
             output_format,
             aigc_watermark
@@ -679,19 +729,35 @@ app.post('/api/tts/http', requireAuth, async (req, res) => {
         const response = await axios.post(`${MINIMAX_API_BASE}/v1/t2a_v2`, payload, axiosOpts);
         const result = { success: true, data: response.data };
 
-        // 保存资源到数据库
-        if (response.data?.data?.audio && req.userId) {
+        // 保存资源到数据库 + 必要时转码为 ogg/opus
+        if (response.data?.data?.audio) {
             try {
-                const audioFormat = audio_setting?.format || 'mp3';
-                const audioBuffer = output_format === 'hex' ? hexToBuffer(response.data.data.audio) : Buffer.from(response.data.data.audio, 'base64');
-                const resourceId = saveResourceAsync(req.userId, 'tts-http', audioBuffer, {
-                    model,
-                    prompt: text,
-                    voiceId: voice_setting?.voice_id,
-                    format: audioFormat,
-                    params: { voice_setting, audio_setting }
-                });
-                result.resourceId = resourceId;
+                let audioBuffer = output_format === 'hex'
+                    ? hexToBuffer(response.data.data.audio)
+                    : Buffer.from(response.data.data.audio, 'base64');
+                let audioFormat = audio_setting?.format || 'mp3';
+
+                if (wantOpus) {
+                    audioBuffer = await mp3ToOggOpus(audioBuffer);
+                    audioFormat = 'opus';
+                }
+
+                // 把转码后的内容放回 result，前端用 hex 解码
+                result.data = {
+                    ...response.data,
+                    data: { ...response.data.data, audio: audioBuffer.toString('hex') }
+                };
+
+                if (req.userId) {
+                    const resourceId = saveResourceAsync(req.userId, 'tts-http', audioBuffer, {
+                        model,
+                        prompt: text,
+                        voiceId: voice_setting?.voice_id,
+                        format: audioFormat,
+                        params: { voice_setting, audio_setting }
+                    });
+                    result.resourceId = resourceId;
+                }
             } catch (saveErr) {
                 console.error('[Resource] TTS HTTP 保存失败:', saveErr.message);
             }
@@ -713,6 +779,8 @@ app.post('/api/tts/async/create', requireAuth, async (req, res) => {
     try {
         const { model, text, text_file_id, voice_setting, audio_setting, language_boost, pronunciation_dict, voice_modify, aigc_watermark } = req.body;
 
+        const wantOpus = audio_setting?.format === 'opus';
+
         const payload = {
             model: model || 'speech-2.8-hd',
             voice_setting: voice_setting || {
@@ -721,12 +789,19 @@ app.post('/api/tts/async/create', requireAuth, async (req, res) => {
                 vol: 10,
                 pitch: 1
             },
-            audio_setting: audio_setting || {
-                audio_sample_rate: 32000,
-                bitrate: 128000,
-                format: 'mp3',
-                channel: 2
-            }
+            // opus 选项：后端强制按 16kHz / 单声道 / mp3 创建任务，下载时再用 ffmpeg 转 ogg/opus
+            audio_setting: (() => {
+                const base = audio_setting || {
+                    audio_sample_rate: 32000,
+                    bitrate: 128000,
+                    format: 'mp3',
+                    channel: 2
+                };
+                if (wantOpus) {
+                    return { ...base, audio_sample_rate: 16000, channel: 1, format: 'mp3' };
+                }
+                return base;
+            })()
         };
 
         if (text_file_id) {
@@ -742,8 +817,8 @@ app.post('/api/tts/async/create', requireAuth, async (req, res) => {
         if (voice_modify) payload.voice_modify = voice_modify;
         if (aigc_watermark) payload.aigc_watermark = true;
 
-        // 校验 audio_setting.format（MiniMax T2A async 仅支持 mp3/pcm/flac/wav）
-        const validFormats = ['mp3', 'pcm', 'flac', 'wav'];
+        // 校验 audio_setting.format（支持 mp3/pcm/flac/wav，opus 由后端内部转码）
+        const validFormats = ['mp3', 'pcm', 'flac', 'wav', 'opus'];
         if (audio_setting?.format && !validFormats.includes(audio_setting.format)) {
             return res.status(400).json({
                 success: false,
@@ -801,7 +876,7 @@ app.get('/api/tts/async/query', requireAuth, async (req, res) => {
 // 异步合成 - 下载音频
 app.get('/api/tts/async/download', requireAuth, async (req, res) => {
     try {
-        const { file_id } = req.query;
+        const { file_id, format: downloadFormat } = req.query;
         if (!file_id) {
             return res.status(400).json({ error: 'file_id is required' });
         }
@@ -813,13 +888,28 @@ app.get('/api/tts/async/download', requireAuth, async (req, res) => {
             responseType: 'arraybuffer'
         });
 
-        // 保存资源到数据库
+        let audioBuffer = Buffer.from(response.data);
+        let finalFormat = 'mp3';
+        let contentType = 'audio/mpeg';
+
+        // opus 选项：用 ffmpeg 把 MiniMax 返回的 mp3 重封装为 ogg/opus
+        if (downloadFormat === 'opus') {
+            try {
+                audioBuffer = await mp3ToOggOpus(audioBuffer);
+                finalFormat = 'opus';
+                contentType = 'audio/ogg';
+            } catch (ffErr) {
+                console.error('[Async TTS] opus 转码失败，回退到 mp3:', ffErr.message);
+            }
+        }
+
+        // 保存资源到数据库（始终保存原 mp3，节省空间）
         if (req.userId && response.data) {
             try {
                 const resourceId = saveResourceAsync(req.userId, 'tts-async', Buffer.from(response.data), {
                     model: 'async',
                     format: 'mp3',
-                    params: { file_id }
+                    params: { file_id, downloadFormat }
                 });
                 // 在响应头中返回资源 ID
                 res.setHeader('X-Resource-Id', resourceId);
@@ -828,14 +918,48 @@ app.get('/api/tts/async/download', requireAuth, async (req, res) => {
             }
         }
 
-        res.set('Content-Type', 'audio/mpeg');
-        res.send(response.data);
+        res.set('Content-Type', contentType);
+        res.set('Content-Disposition', `attachment; filename="tts_async_${file_id}.${finalFormat}"`);
+        res.send(audioBuffer);
     } catch (error) {
         console.error('Async TTS Download Error:', error.message);
         res.status(500).json({
             success: false,
             error: error.response?.data?.message || error.message
         });
+    }
+});
+
+/**
+ * 通用音频转码端点
+ * POST /api/convert-audio
+ * Body: { audioBase64: string, sourceFormat?: string, targetFormat: 'opus' | 'mp3' | 'wav' }
+ * Returns: { success, data: { audioBase64, format, contentType } }
+ */
+app.post('/api/convert-audio', requireAuth, express.json({ limit: '50mb' }), async (req, res) => {
+    try {
+        const { audioBase64, sourceFormat, targetFormat = 'opus' } = req.body;
+        if (!audioBase64) {
+            return res.status(400).json({ success: false, error: 'audioBase64 不能为空' });
+        }
+        if (targetFormat !== 'opus') {
+            return res.status(400).json({ success: false, error: '目前仅支持 targetFormat=opus' });
+        }
+
+        const inputBuffer = Buffer.from(audioBase64, 'base64');
+        const opusBuffer = await mp3ToOggOpus(inputBuffer);
+
+        res.json({
+            success: true,
+            data: {
+                audioBase64: opusBuffer.toString('base64'),
+                format: 'opus',
+                contentType: 'audio/ogg'
+            }
+        });
+    } catch (error) {
+        console.error('[Convert Audio] 错误:', error.message);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 

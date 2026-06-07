@@ -253,7 +253,8 @@ async function startSynthesis() {
     }, 500);
 
     try {
-        // opus 选项：MiniMax 不支持，前端强制按 16kHz/mono/mp3 合成后再转码
+        // opus 选项：MiniMax 不支持，前端强制按 16kHz/mono/mp3 调 API，
+        // 后端收到后再用 ffmpeg 重封装为 ogg/opus 容器再返回
         const wantOpus = format === 'opus';
         const apiFormat = wantOpus ? 'mp3' : format;
         const apiSampleRate = wantOpus ? 16000 : sampleRate;
@@ -306,27 +307,17 @@ async function startSynthesis() {
                 audioBytes[i / 2] = parseInt(hexString.substr(i, 2), 16);
             }
 
-            const mimeType = apiFormat === 'wav' ? 'audio/wav' : apiFormat === 'flac' ? 'audio/flac' : apiFormat === 'pcm' ? 'audio/pcm' : 'audio/mpeg';
+            // opus 选项：后端已用 ffmpeg 重封装为 ogg/opus 容器；其余按原始格式
+            const mimeType = wantOpus ? 'audio/ogg'
+                : apiFormat === 'wav' ? 'audio/wav'
+                : apiFormat === 'flac' ? 'audio/flac'
+                : apiFormat === 'pcm' ? 'audio/pcm'
+                : 'audio/mpeg';
             audioBlob = new Blob([audioBytes], { type: mimeType });
         } else {
             // 兜底：直接处理二进制
             const audioData = await response.arrayBuffer();
-            audioBlob = new Blob([audioData], { type: 'audio/mpeg' });
-        }
-
-        // 前端转码为 Opus (16kHz / 单声道 / 小智协议)
-        if (wantOpus) {
-            if (!window.AudioConverter?.isOpusSupported?.()) {
-                throw new Error('当前浏览器不支持 Opus 编码，请用 Chrome / Edge / Firefox');
-            }
-            updateStatus('processing', '转码中...', '正在编码为 Opus 16kHz 单声道');
-            const progressFill = document.getElementById('progressFill');
-            if (progressFill) progressFill.style.width = '95%';
-            audioBlob = await window.AudioConverter.convertToOpus(audioBlob, {
-                sampleRate: 16000,
-                channels: 1,
-                bitsPerSecond: 32000
-            });
+            audioBlob = new Blob([audioData], { type: wantOpus ? 'audio/ogg' : 'audio/mpeg' });
         }
 
         const audioUrl = URL.createObjectURL(audioBlob);

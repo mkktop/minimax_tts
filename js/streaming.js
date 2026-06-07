@@ -650,18 +650,27 @@ async function saveStreamingAudio(extraInfo) {
         // 收集所有音频 chunk 为一个 Blob
         let blob = new Blob(pendingChunks, { type: 'audio/mpeg' });
 
-        // opus 选项：把 mp3 转码为 Opus (16kHz mono) 再保存
+        // opus 选项：把 mp3 发到后端 /api/convert-audio 转码为标准 ogg/opus 再保存
         if (format === 'opus') {
-            if (!window.AudioConverter?.isOpusSupported?.()) {
-                showToast('当前浏览器不支持 Opus 编码', 'error');
-                return;
-            }
             showToast('正在转码为 Opus 16kHz 单声道...', 'info');
-            blob = await window.AudioConverter.convertToOpus(blob, {
-                sampleRate: 16000,
-                channels: 1,
-                bitsPerSecond: 32000
+            const base64 = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
             });
+            const res = await fetch('/api/convert-audio', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ audioBase64: base64, targetFormat: 'opus' })
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || '转码失败');
+            const bin = atob(data.data.audioBase64);
+            const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            blob = new Blob([bytes], { type: 'audio/ogg' });
         }
 
         const reader = new FileReader();
@@ -830,19 +839,29 @@ async function downloadAudio() {
         return;
     }
 
-    // opus 选项：把 mp3 转码为 Opus (16kHz mono) 再下载
+    // opus 选项：把 mp3 发到后端 /api/convert-audio 转码为标准 ogg/opus 再下载
     if (format === 'opus') {
-        if (!window.AudioConverter?.isOpusSupported?.()) {
-            showToast('当前浏览器不支持 Opus 编码', 'error');
-            return;
-        }
         showToast('正在转码为 Opus 16kHz 单声道...', 'info');
         try {
-            blobToDownload = await window.AudioConverter.convertToOpus(blobToDownload, {
-                sampleRate: 16000,
-                channels: 1,
-                bitsPerSecond: 32000
+            const base64 = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(blobToDownload);
             });
+            const res = await fetch('/api/convert-audio', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ audioBase64: base64, targetFormat: 'opus' })
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || '转码失败');
+            // 后端返回 base64
+            const bin = atob(data.data.audioBase64);
+            const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            blobToDownload = new Blob([bytes], { type: 'audio/ogg' });
         } catch (err) {
             showToast('Opus 转码失败: ' + err.message, 'error');
             return;
