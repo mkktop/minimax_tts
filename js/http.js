@@ -253,13 +253,8 @@ async function startSynthesis() {
     }, 500);
 
     try {
-        // opus 选项：MiniMax 不支持，前端强制按 16kHz/mono/mp3 调 API，
-        // 后端收到后再用 ffmpeg 重封装为 ogg/opus 容器再返回
-        const wantOpus = format === 'opus';
-        const apiFormat = wantOpus ? 'mp3' : format;
-        const apiSampleRate = wantOpus ? 16000 : sampleRate;
-        const apiChannel = wantOpus ? 1 : channel;
-
+        // opus 选项：原样把 format='opus' 传给后端，由后端识别后
+        // 用 mp3/16k/mono 调 MiniMax、收到后用 ffmpeg 转 ogg/opus 再返回
         const response = await fetch('/api/tts/http', {
             method: 'POST',
             headers: {
@@ -279,10 +274,10 @@ async function startSynthesis() {
                     ...(emotion && { emotion })
                 },
                 audio_setting: {
-                    sample_rate: apiSampleRate,
+                    sample_rate: sampleRate,
                     bitrate: bitrate,
-                    format: apiFormat,
-                    channel: apiChannel
+                    format: format,
+                    channel: channel
                 },
                 ...(languageBoost && { language_boost: languageBoost }),
                 ...(pronunciationDict && { pronunciation_dict: pronunciationDict }),
@@ -308,10 +303,10 @@ async function startSynthesis() {
             }
 
             // opus 选项：后端已用 ffmpeg 重封装为 ogg/opus 容器；其余按原始格式
-            const mimeType = wantOpus ? 'audio/ogg'
-                : apiFormat === 'wav' ? 'audio/wav'
-                : apiFormat === 'flac' ? 'audio/flac'
-                : apiFormat === 'pcm' ? 'audio/pcm'
+            const mimeType = format === 'opus' ? 'audio/ogg'
+                : format === 'wav' ? 'audio/wav'
+                : format === 'flac' ? 'audio/flac'
+                : format === 'pcm' ? 'audio/pcm'
                 : 'audio/mpeg';
             audioBlob = new Blob([audioBytes], { type: mimeType });
         } else {

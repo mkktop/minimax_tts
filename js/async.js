@@ -282,13 +282,13 @@ async function createTask() {
     if (emotion) voiceSetting.emotion = emotion;
     if (englishNormalization) voiceSetting.english_normalization = true;
 
-    // opus 选项：MiniMax 不支持，强制按 16kHz/mono/mp3 创建任务，前端下载后再转码
-    const wantOpus = format === 'opus';
+    // opus 选项：原样传 format='opus' 给后端，由后端用 mp3/16k/mono 创建任务，
+    // 下载时再传 ?format=opus 让后端用 ffmpeg 转 ogg/opus
     const audioSetting = {
-        audio_sample_rate: wantOpus ? 16000 : sampleRate,
+        audio_sample_rate: sampleRate,
         bitrate: bitrate,
-        format: wantOpus ? 'mp3' : format,
-        channel: wantOpus ? 1 : channel
+        format: format,
+        channel: channel
     };
 
     // 显示状态
