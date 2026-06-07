@@ -919,7 +919,7 @@ app.get('/api/tts/async/download', requireAuth, async (req, res) => {
         }
 
         res.set('Content-Type', contentType);
-        res.set('Content-Disposition', `attachment; filename="tts_async_${file_id}.${finalFormat}"`);
+        res.set('Content-Disposition', `attachment; filename="tts_async_${file_id}.${finalFormat === 'opus' ? 'ogg' : finalFormat}"`);
         res.send(audioBuffer);
     } catch (error) {
         console.error('Async TTS Download Error:', error.message);

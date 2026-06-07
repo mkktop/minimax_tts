@@ -403,7 +403,7 @@ function downloadAudio() {
     }
 
     const format = document.getElementById('formatSelect').value;
-    const extMap = { mp3: 'mp3', wav: 'wav', flac: 'flac', pcm: 'pcm', opus: 'opus' };
+    const extMap = { mp3: 'mp3', wav: 'wav', flac: 'flac', pcm: 'pcm', opus: 'ogg' };
     const ext = extMap[format] || 'mp3';
     const filename = `minimax_tts_${Date.now()}.${ext}`;
 

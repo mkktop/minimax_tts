@@ -447,7 +447,7 @@ async function downloadAudio() {
     }
 
     const format = document.getElementById('formatSelect').value;
-    const extMap = { 'mp3': 'mp3', 'wav': 'wav', 'flac': 'flac', 'pcm': 'pcm', 'opus': 'opus' };
+    const extMap = { 'mp3': 'mp3', 'wav': 'wav', 'flac': 'flac', 'pcm': 'pcm', 'opus': 'ogg' };
 
     // opus 选项：直接让后端转码为 ogg/opus（后端 format=opus 触发 ffmpeg）
     const url = `/api/tts/async/download?file_id=${currentFileId}${format === 'opus' ? '&format=opus' : ''}`;
