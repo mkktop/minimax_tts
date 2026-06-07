@@ -282,12 +282,13 @@ async function createTask() {
     if (emotion) voiceSetting.emotion = emotion;
     if (englishNormalization) voiceSetting.english_normalization = true;
 
-    // 构建 audio_setting（注意异步 API 字段名是 audio_sample_rate）
+    // opus 选项：MiniMax 不支持，强制按 16kHz/mono/mp3 创建任务，前端下载后再转码
+    const wantOpus = format === 'opus';
     const audioSetting = {
-        audio_sample_rate: sampleRate,
+        audio_sample_rate: wantOpus ? 16000 : sampleRate,
         bitrate: bitrate,
-        format: format,
-        channel: channel
+        format: wantOpus ? 'mp3' : format,
+        channel: wantOpus ? 1 : channel
     };
 
     // 显示状态
@@ -458,12 +459,26 @@ async function downloadAudio() {
             throw new Error('下载失败');
         }
 
-        const blob = await response.blob();
+        let blob = await response.blob();
+        const format = document.getElementById('formatSelect').value;
+        const extMap = { 'mp3': 'mp3', 'wav': 'wav', 'flac': 'flac', 'pcm': 'pcm', 'opus': 'opus' };
+
+        // opus 选项：把下载到的 mp3 转码为 Opus (16kHz mono) 再下载
+        if (format === 'opus') {
+            if (!window.AudioConverter?.isOpusSupported?.()) {
+                throw new Error('当前浏览器不支持 Opus 编码，请用 Chrome / Edge / Firefox');
+            }
+            showToast('正在转码为 Opus 16kHz 单声道...', 'info');
+            blob = await window.AudioConverter.convertToOpus(blob, {
+                sampleRate: 16000,
+                channels: 1,
+                bitsPerSecond: 32000
+            });
+        }
+
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        const format = document.getElementById('formatSelect').value;
-        const extMap = { 'mp3': 'mp3', 'wav': 'wav', 'flac': 'flac', 'pcm': 'pcm', 'opus': 'ogg', 'pcmu_raw': 'pcmu', 'pcmu_wav': 'wav' };
         a.download = `minimax_async_${currentTaskId}.${extMap[format] || 'mp3'}`;
         a.click();
         URL.revokeObjectURL(url);

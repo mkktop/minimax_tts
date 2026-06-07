@@ -253,6 +253,12 @@ async function startSynthesis() {
     }, 500);
 
     try {
+        // opus 选项：MiniMax 不支持，前端强制按 16kHz/mono/mp3 合成后再转码
+        const wantOpus = format === 'opus';
+        const apiFormat = wantOpus ? 'mp3' : format;
+        const apiSampleRate = wantOpus ? 16000 : sampleRate;
+        const apiChannel = wantOpus ? 1 : channel;
+
         const response = await fetch('/api/tts/http', {
             method: 'POST',
             headers: {
@@ -272,10 +278,10 @@ async function startSynthesis() {
                     ...(emotion && { emotion })
                 },
                 audio_setting: {
-                    sample_rate: sampleRate,
+                    sample_rate: apiSampleRate,
                     bitrate: bitrate,
-                    format: format,
-                    channel: channel
+                    format: apiFormat,
+                    channel: apiChannel
                 },
                 ...(languageBoost && { language_boost: languageBoost }),
                 ...(pronunciationDict && { pronunciation_dict: pronunciationDict }),
@@ -300,12 +306,27 @@ async function startSynthesis() {
                 audioBytes[i / 2] = parseInt(hexString.substr(i, 2), 16);
             }
 
-            const mimeType = format === 'wav' ? 'audio/wav' : format === 'flac' ? 'audio/flac' : format === 'pcm' ? 'audio/pcm' : format === 'opus' || format === 'ogg' ? 'audio/ogg' : 'audio/mpeg';
+            const mimeType = apiFormat === 'wav' ? 'audio/wav' : apiFormat === 'flac' ? 'audio/flac' : apiFormat === 'pcm' ? 'audio/pcm' : 'audio/mpeg';
             audioBlob = new Blob([audioBytes], { type: mimeType });
         } else {
             // 兜底：直接处理二进制
             const audioData = await response.arrayBuffer();
             audioBlob = new Blob([audioData], { type: 'audio/mpeg' });
+        }
+
+        // 前端转码为 Opus (16kHz / 单声道 / 小智协议)
+        if (wantOpus) {
+            if (!window.AudioConverter?.isOpusSupported?.()) {
+                throw new Error('当前浏览器不支持 Opus 编码，请用 Chrome / Edge / Firefox');
+            }
+            updateStatus('processing', '转码中...', '正在编码为 Opus 16kHz 单声道');
+            const progressFill = document.getElementById('progressFill');
+            if (progressFill) progressFill.style.width = '95%';
+            audioBlob = await window.AudioConverter.convertToOpus(audioBlob, {
+                sampleRate: 16000,
+                channels: 1,
+                bitsPerSecond: 32000
+            });
         }
 
         const audioUrl = URL.createObjectURL(audioBlob);
@@ -391,7 +412,7 @@ function downloadAudio() {
     }
 
     const format = document.getElementById('formatSelect').value;
-    const extMap = { mp3: 'mp3', wav: 'wav', ogg: 'ogg', opus: 'ogg', flac: 'flac', pcm: 'pcm', pcmu_raw: 'ulaw', pcmu_wav: 'ulaw.wav' };
+    const extMap = { mp3: 'mp3', wav: 'wav', flac: 'flac', pcm: 'pcm', opus: 'opus' };
     const ext = extMap[format] || 'mp3';
     const filename = `minimax_tts_${Date.now()}.${ext}`;
 
