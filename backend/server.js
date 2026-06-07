@@ -587,6 +587,15 @@ app.post('/api/tts/http', requireAuth, async (req, res) => {
             return res.status(400).json({ success: false, error: 'text 长度不能超过 10000 字符' });
         }
 
+        // 校验 audio_setting.format（MiniMax T2A v2 仅支持 mp3/pcm/flac/wav）
+        const validFormats = ['mp3', 'pcm', 'flac', 'wav'];
+        if (audio_setting?.format && !validFormats.includes(audio_setting.format)) {
+            return res.status(400).json({
+                success: false,
+                error: `format 必须为: ${validFormats.join(' / ')}`
+            });
+        }
+
         const payload = {
             model,
             stream,
@@ -732,6 +741,15 @@ app.post('/api/tts/async/create', requireAuth, async (req, res) => {
         if (pronunciation_dict) payload.pronunciation_dict = pronunciation_dict;
         if (voice_modify) payload.voice_modify = voice_modify;
         if (aigc_watermark) payload.aigc_watermark = true;
+
+        // 校验 audio_setting.format（MiniMax T2A async 仅支持 mp3/pcm/flac/wav）
+        const validFormats = ['mp3', 'pcm', 'flac', 'wav'];
+        if (audio_setting?.format && !validFormats.includes(audio_setting.format)) {
+            return res.status(400).json({
+                success: false,
+                error: `format 必须为: ${validFormats.join(' / ')}`
+            });
+        }
 
         const response = await axios.post(`${MINIMAX_API_BASE}/v1/t2a_async_v2`, payload, {
             headers: {
