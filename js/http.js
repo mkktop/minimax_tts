@@ -312,7 +312,7 @@ async function startSynthesis() {
         } else {
             // 兜底：直接处理二进制
             const audioData = await response.arrayBuffer();
-            audioBlob = new Blob([audioData], { type: wantOpus ? 'audio/ogg' : 'audio/mpeg' });
+            audioBlob = new Blob([audioData], { type: format === 'opus' ? 'audio/ogg' : 'audio/mpeg' });
         }
 
         const audioUrl = URL.createObjectURL(audioBlob);
@@ -340,6 +340,9 @@ async function startSynthesis() {
         });
         isPlaying = true;
         document.querySelector('.audio-play-btn').textContent = '⏸';
+
+        // 保存到历史记录（后端已保存，前端刷新历史列表即可）
+        setTimeout(() => refreshResourceHistory(), 500);
 
     } catch (error) {
         clearInterval(progressInterval);

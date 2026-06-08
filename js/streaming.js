@@ -497,9 +497,8 @@ async function startSynthesis() {
             console.error('[WS] 错误:', err);
         };
 
-        // 发送 task_start
+        // 发送 task_start（streamPlay 在 task_started 回调中初始化，避免重复调用）
         updateStatus('processing', '发送参数...', 'task_start');
-        streamPlay(format);
         ws.send(JSON.stringify(taskStartMsg));
 
     } catch (error) {
@@ -598,10 +597,12 @@ function finishSynthesis(extraInfo) {
         return;
     }
 
-    // Fallback: build blob from pendingChunks (already Uint8Array bytes)
+    // 克隆一份 pendingChunks 防止后续被 shift 消费导致保存空数据
+    const savedChunks = pendingChunks.slice();
+
     const format = document.getElementById('formatSelect').value;
     mimeType = getMimeType(format);
-    audioBlob = new Blob(pendingChunks, { type: mimeType });
+    audioBlob = new Blob(savedChunks, { type: mimeType });
 
     const audioUrl = URL.createObjectURL(audioBlob);
     audioElement.src = audioUrl;
@@ -640,15 +641,20 @@ function finishSynthesis(extraInfo) {
  */
 async function saveStreamingAudio(extraInfo) {
     try {
-        if (!window.currentUser || pendingChunks.length === 0) return;
+        if (!window.currentUser) return;
 
         const format = document.getElementById('formatSelect').value;
         const model = document.querySelector('.model-option.selected')?.dataset.model || 'speech-2.8-hd';
         const text = document.getElementById('textInput').value.trim();
         const voiceId = window.getSelectedVoiceId ? window.getSelectedVoiceId() : '';
 
-        // 收集所有音频 chunk 为一个 Blob
-        let blob = new Blob(pendingChunks, { type: 'audio/mpeg' });
+        // 用 audioBlob（finishSynthesis 已克隆构建），避免 pendingChunks 被 shift 消费
+        let blob = audioBlob;
+        if (!blob || blob.size === 0) {
+            // fallback: 从 pendingChunks 克隆
+            if (pendingChunks.length === 0) return;
+            blob = new Blob(pendingChunks.slice(), { type: 'audio/mpeg' });
+        }
 
         // opus 选项：把 mp3 发到后端 /api/convert-audio 转码为标准 ogg/opus 再保存
         if (format === 'opus') {
@@ -829,9 +835,9 @@ async function downloadAudio() {
 
     let blobToDownload = audioBlob;
 
-    // In streaming mode, build blob from pendingChunks for download
+    // In streaming mode, build blob from cloned pendingChunks for download
     if (streamingActive && pendingChunks.length > 0) {
-        blobToDownload = new Blob(pendingChunks, { type: 'audio/mpeg' });
+        blobToDownload = new Blob(pendingChunks.slice(), { type: 'audio/mpeg' });
     }
 
     if (!blobToDownload) {

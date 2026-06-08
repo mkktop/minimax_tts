@@ -1515,8 +1515,8 @@ app.post('/api/music/generate', requireAuth, async (req, res) => {
         }
 
         // 校验 audio_setting
-        const validSampleRates = [16000, 24000, 32000, 44100];
-        const validBitrates = [32000, 64000, 128000, 256000];
+        const validSampleRates = [16000, 24000, 32000, 44100, 48000];
+        const validBitrates = [32000, 64000, 128000, 192000, 256000, 320000];
         const validFormats = ['mp3', 'wav', 'pcm'];
         const sr = audio_setting.sample_rate || 44100;
         const br = audio_setting.bitrate || 256000;

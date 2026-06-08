@@ -283,6 +283,9 @@ async function generateImage() {
         renderResults();
         setStatus('生成完成！', `共 ${currentResults.length} 张图片`, 'success');
 
+        // 刷新历史记录（延迟确保后端保存完成）
+        setTimeout(() => refreshResourceHistory(), 500);
+
     } catch (error) {
         console.error('Generate error:', error);
         setStatus('生成失败', error.message, 'error');
