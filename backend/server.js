@@ -1383,22 +1383,31 @@ app.post('/api/image/generate', requireAuth, async (req, res) => {
 
         const imageResult = { success: true, data: response.data };
 
-        // 保存资源到数据库
+        // 保存资源到数据库（保存所有图片，不只是一张）
         if (req.userId) {
             try {
                 // API 可能返回 image_base64（response_format=base64）或 image_urls（URL 列表）
                 const base64List = response.data?.data?.image_base64 || [];
                 const urlList = response.data?.data?.image_urls || [];
-                const firstImage = base64List[0] || urlList[0];
-                if (firstImage) {
-                    const imageBuffer = Buffer.from(firstImage, 'base64');
-                    const resourceId = saveResourceAsync(req.userId, 'image', imageBuffer, {
-                        model,
-                        prompt,
-                        format: 'png',
-                        params: { aspect_ratio, width, height, seed, prompt_optimizer, style }
-                    });
-                    imageResult.resourceId = resourceId;
+                const allImages = [...base64List, ...urlList];
+                const resourceIds = [];
+                for (let i = 0; i < allImages.length; i++) {
+                    try {
+                        const imageBuffer = Buffer.from(allImages[i], 'base64');
+                        const rid = saveResourceAsync(req.userId, 'image', imageBuffer, {
+                            model,
+                            prompt,
+                            format: 'png',
+                            params: { aspect_ratio, width, height, seed, prompt_optimizer, style, index: allImages.length > 1 ? i + 1 : undefined }
+                        });
+                        resourceIds.push(rid);
+                    } catch (e) {
+                        console.error(`[Resource] 图片 ${i + 1} 保存失败:`, e.message);
+                    }
+                }
+                if (resourceIds.length > 0) {
+                    imageResult.resourceId = resourceIds[0];
+                    if (resourceIds.length > 1) imageResult.resourceIds = resourceIds;
                 }
             } catch (saveErr) {
                 console.error('[Resource] 图片保存失败:', saveErr.message);

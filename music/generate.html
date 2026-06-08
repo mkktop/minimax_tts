@@ -363,6 +363,9 @@
             player.src = blobUrl;
             document.getElementById('resultSection').classList.remove('hidden');
 
+            // 自动播放
+            player.play().catch(err => console.log('Auto-play blocked:', err));
+
             // 元信息
             const dur = extraInfo.music_duration ? (extraInfo.music_duration / 1000).toFixed(1) + ' 秒' : '';
             const size = extraInfo.music_size ? (extraInfo.music_size / 1024).toFixed(1) + ' KB' : '';
@@ -385,6 +388,9 @@
 
             setStatus('生成成功！', '点击播放器试听', 'success');
             showToast('音乐生成成功', 'success');
+
+            // 刷新历史记录（延迟确保后端保存完成）
+            setTimeout(() => refreshResourceHistory(), 500);
         }
 
         document.getElementById('lyricsInput').addEventListener('input', updateLyricsCount);
