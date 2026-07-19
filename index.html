@@ -7,10 +7,18 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/home.css">
     <link rel="stylesheet" href="css/hero.css">
+    <link rel="stylesheet" href="css/enhance.css">
     <link rel="icon" type="image/png" sizes="32x32" href="images/favicon.png">
     <link rel="icon" type="image/x-icon" href="images/favicon.ico">
 </head>
 <body>
+    <!-- 背景装饰光效 -->
+    <div class="bg-glow-orbs" aria-hidden="true">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
     <!-- Header -->
     <header class="header">
         <div class="container header-inner">
@@ -83,14 +91,14 @@
     <!-- Modules Section -->
     <section id="modules" class="modules-section">
         <div class="container">
-            <div class="section-header">
+            <div class="section-header reveal">
                 <h2 class="section-title">功能模块</h2>
                 <p class="section-subtitle">登录并设置 API Key 后即可开始创作</p>
             </div>
 
             <div class="modules-grid">
                 <!-- 语音生成模块 -->
-                <a href="tts/index.html" class="module-card module-tts">
+                <a href="tts/index.html" class="module-card module-tts reveal reveal-delay-1">
                     <div class="module-icon">🎙️</div>
                     <h3 class="module-title">语音生成</h3>
                     <p class="module-desc">文字转语音 · 327+ 音色 · 24 种语言 · 支持同步、异步、流式合成与音色复刻</p>
@@ -104,7 +112,7 @@
                 </a>
 
                 <!-- 图片生成模块 -->
-                <a href="image/index.html" class="module-card module-image">
+                <a href="image/index.html" class="module-card module-image reveal reveal-delay-2">
                     <div class="module-icon">🎨</div>
                     <h3 class="module-title">图片生成</h3>
                     <p class="module-desc">AI 图像生成 · 文生图与图生图 · 多种画风 · 支持人物参考</p>
@@ -118,7 +126,7 @@
                 </a>
 
                 <!-- 音乐生成模块 -->
-                <a href="music/index.html" class="module-card module-music">
+                <a href="music/index.html" class="module-card module-music reveal reveal-delay-3">
                     <div class="module-icon">🎵</div>
                     <h3 class="module-title">音乐生成</h3>
                     <p class="module-desc">AI 音乐创作 · 文本生成歌曲 · 12 种风格预设 · 翻唱与 AI 作词</p>
@@ -163,6 +171,7 @@
 
     <script src="js/auth.js"></script>
     <script src="js/api-key.js"></script>
+    <script src="js/enhance.js"></script>
     <script>
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');

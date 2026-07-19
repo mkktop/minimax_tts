@@ -541,6 +541,20 @@ select.form-input.hidden-native {
     padding: 48px 0;
     border-top: 1px solid var(--border-color);
     text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.footer::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 500px;
+    height: 200px;
+    background: radial-gradient(ellipse, var(--color-glow-bg) 0%, transparent 70%);
+    pointer-events: none;
 }
 
 .footer-links {

@@ -59,7 +59,6 @@
     margin: 0 auto;
     text-align: center;
     color: #fff;
-    animation: heroFadeIn 1s ease-out;
 }
 
 @keyframes heroFadeIn {
@@ -133,6 +132,12 @@
     font-size: 0.7rem;
     letter-spacing: 0.15em;
     animation: scrollBounce 2s ease-in-out infinite;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.scroll-hint:hover {
+    color: rgba(255, 255, 255, 0.7);
 }
 
 .scroll-arrow {
@@ -141,6 +146,11 @@
     border-right: 2px solid rgba(255, 255, 255, 0.5);
     border-bottom: 2px solid rgba(255, 255, 255, 0.5);
     transform: rotate(45deg);
+    transition: border-color 0.3s ease;
+}
+
+.scroll-hint:hover .scroll-arrow {
+    border-color: rgba(255, 255, 255, 0.8);
 }
 
 @keyframes scrollBounce {
@@ -162,6 +172,13 @@
     border-radius: 20px;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
+    transition: all 0.4s ease;
+}
+
+.hero .stats:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow: 0 8px 40px rgba(79, 70, 229, 0.15);
 }
 
 .hero .stat-item {
@@ -252,6 +269,19 @@
 .modules-section {
     padding: 40px 0 100px;
     background: var(--bg-dark);
+    position: relative;
+}
+
+.modules-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 400px;
+    background: radial-gradient(ellipse, rgba(79, 70, 229, 0.06) 0%, transparent 70%);
+    pointer-events: none;
 }
 
 .modules-grid {
@@ -305,6 +335,16 @@
     transform: translateY(-8px);
     border-color: var(--primary);
     box-shadow: 0 24px 60px -20px rgba(79, 70, 229, 0.4);
+}
+
+.module-card.module-image:hover {
+    border-color: #ec4899;
+    box-shadow: 0 24px 60px -20px rgba(236, 72, 153, 0.4);
+}
+
+.module-card.module-music:hover {
+    border-color: #a855f7;
+    box-shadow: 0 24px 60px -20px rgba(168, 85, 247, 0.4);
 }
 
 .module-card:hover::after {

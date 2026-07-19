@@ -86,6 +86,12 @@ body:has(.module-hero-music)::after {
     background-position: center;
     opacity: 0.4;
     z-index: 0;
+    animation: moduleBgZoom 20s ease-in-out infinite alternate;
+}
+
+@keyframes moduleBgZoom {
+    from { transform: scale(1); }
+    to { transform: scale(1.05); }
 }
 
 /* 顶部暗色渐变（保证文字可读） */
@@ -154,6 +160,12 @@ body:has(.module-hero-music)::after {
     font-size: 3rem;
     box-shadow: 0 12px 30px rgba(79, 70, 229, 0.3);
     flex-shrink: 0;
+    animation: moduleIconFloat 4s ease-in-out infinite;
+}
+
+@keyframes moduleIconFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
 }
 
 .module-hero-image .module-hero-icon {

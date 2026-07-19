@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/home.css">
     <link rel="stylesheet" href="../css/subhome.css">
+    <link rel="stylesheet" href="../css/enhance.css">
     <link rel="icon" type="image/png" sizes="32x32" href="../images/favicon.png">
     <link rel="icon" type="image/x-icon" href="../images/favicon.ico">
 </head>
@@ -55,7 +56,7 @@
             </div>
 
             <div class="subhome-grid subhome-grid-3">
-                <a href="generate.html" class="subhome-card">
+                <a href="generate.html" class="subhome-card reveal reveal-delay-1">
                     <div class="subhome-icon"><img src="../images/music-generate-icon.png" alt="音乐生成" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>
                     <h3 class="subhome-title">音乐生成</h3>
                     <p class="subhome-desc">输入风格 + 歌词，AI 谱曲演唱，生成完整歌曲。支持纯音乐（无人声）。</p>
@@ -67,7 +68,7 @@
                     <span class="subhome-link">开始 →</span>
                 </a>
 
-                <a href="lyrics.html" class="subhome-card">
+                <a href="lyrics.html" class="subhome-card reveal reveal-delay-2">
                     <div class="subhome-icon"><img src="../images/lyrics-icon.png" alt="歌词生成" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>
                     <h3 class="subhome-title">歌词生成</h3>
                     <p class="subhome-desc">只需告诉模型主题（"一首欢乐的新年歌曲"），自动生成含段落结构的完整歌词。</p>
@@ -79,7 +80,7 @@
                     <span class="subhome-link">开始 →</span>
                 </a>
 
-                <a href="cover.html" class="subhome-card">
+                <a href="cover.html" class="subhome-card reveal reveal-delay-3">
                     <div class="subhome-icon"><img src="../images/cover-icon.png" alt="翻唱生成" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>
                     <h3 class="subhome-title">翻唱生成</h3>
                     <p class="subhome-desc">基于已有歌曲生成不同风格的翻唱版本。支持自动提取歌词或自定义修改。</p>
@@ -153,6 +154,7 @@
 
     <script src="../js/auth.js"></script>
     <script src="../js/api-key.js"></script>
+    <script src="../js/enhance.js"></script>
     <script>
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');

@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/home.css">
     <link rel="stylesheet" href="../css/subhome.css">
+    <link rel="stylesheet" href="../css/enhance.css">
     <link rel="icon" type="image/png" sizes="32x32" href="../images/favicon.png">
     <link rel="icon" type="image/x-icon" href="../images/favicon.ico">
 </head>
@@ -57,7 +58,7 @@
             </div>
 
             <div class="subhome-grid subhome-grid-2">
-                <a href="generate.html" class="subhome-card">
+                <a href="generate.html" class="subhome-card reveal reveal-delay-1">
                     <div class="subhome-icon"><img src="../images/text2img-icon.png" alt="文生图" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>
                     <h3 class="subhome-title">文生图</h3>
                     <p class="subhome-desc">输入文字描述，AI 生成高质量图片。支持 8 种宽高比，多种画风，一次最多 9 张。</p>
@@ -69,7 +70,7 @@
                     <span class="subhome-link">开始 →</span>
                 </a>
 
-                <a href="generate.html?mode=img2img" class="subhome-card">
+                <a href="generate.html?mode=img2img" class="subhome-card reveal reveal-delay-2">
                     <div class="subhome-icon"><img src="../images/img2img-icon.png" alt="图生图" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>
                     <h3 class="subhome-title">图生图</h3>
                     <p class="subhome-desc">上传人物参考图 + 文字描述，生成保留人物特征的新场景画面。</p>
@@ -112,6 +113,7 @@
 
     <script src="../js/auth.js"></script>
     <script src="../js/api-key.js"></script>
+    <script src="../js/enhance.js"></script>
     <script>
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');

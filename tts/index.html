@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/home.css">
     <link rel="stylesheet" href="../css/subhome.css">
+    <link rel="stylesheet" href="../css/enhance.css">
     <link rel="icon" type="image/png" sizes="32x32" href="../images/favicon.png">
     <link rel="icon" type="image/x-icon" href="../images/favicon.ico">
 </head>
@@ -57,7 +58,7 @@
             </div>
 
             <div class="subhome-grid">
-                <a href="streaming.html" class="subhome-card">
+                <a href="streaming.html" class="subhome-card reveal reveal-delay-1">
                     <div class="subhome-icon"><img src="../images/streaming-icon.png" alt="流式合成" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>
                     <h3 class="subhome-title">同步合成（流式）</h3>
                     <p class="subhome-desc">WebSocket 流式传输，边合成边播放，最低延迟。</p>
@@ -69,7 +70,7 @@
                     <span class="subhome-link">进入 →</span>
                 </a>
 
-                <a href="http.html" class="subhome-card">
+                <a href="http.html" class="subhome-card reveal reveal-delay-2">
                     <div class="subhome-icon"><img src="../images/http-icon.png" alt="HTTP合成" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>
                     <h3 class="subhome-title">同步合成（HTTP）</h3>
                     <p class="subhome-desc">完整音频一次返回，简单可靠，适合非实时场景。</p>
@@ -81,7 +82,7 @@
                     <span class="subhome-link">进入 →</span>
                 </a>
 
-                <a href="async.html" class="subhome-card">
+                <a href="async.html" class="subhome-card reveal reveal-delay-3">
                     <div class="subhome-icon"><img src="../images/async-icon.png" alt="异步合成" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>
                     <h3 class="subhome-title">异步合成</h3>
                     <p class="subhome-desc">长文本专用，支持字幕时间戳，任务队列处理。</p>
@@ -93,7 +94,7 @@
                     <span class="subhome-link">进入 →</span>
                 </a>
 
-                <a href="clone.html" class="subhome-card">
+                <a href="clone.html" class="subhome-card reveal reveal-delay-4">
                     <div class="subhome-icon"><img src="../images/clone-icon.png" alt="音色复刻" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>
                     <h3 class="subhome-title">音色复刻</h3>
                     <p class="subhome-desc">上传音频样本，克隆专属音色，复刻自己的声音。</p>
@@ -104,7 +105,7 @@
                     <span class="subhome-link">进入 →</span>
                 </a>
 
-                <a href="voice-design.html" class="subhome-card">
+                <a href="voice-design.html" class="subhome-card reveal reveal-delay-5">
                     <div class="subhome-icon"><img src="../images/voice-design-icon.png" alt="音色设计" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>
                     <h3 class="subhome-title">音色设计</h3>
                     <p class="subhome-desc">用文字描述想要的音色，AI 生成专属声音，无需上传音频。</p>
@@ -187,6 +188,7 @@
 
     <script src="../js/auth.js"></script>
     <script src="../js/api-key.js"></script>
+    <script src="../js/enhance.js"></script>
     <script>
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
