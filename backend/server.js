@@ -1456,7 +1456,7 @@ app.post('/api/image/generate', requireAuth, async (req, res) => {
 app.post('/api/music/generate', requireAuth, async (req, res) => {
     try {
         const {
-            model = 'music-2.6',
+            model = 'music-3.0',
             prompt,
             lyrics = '',
             stream = false,
@@ -1471,7 +1471,7 @@ app.post('/api/music/generate', requireAuth, async (req, res) => {
         } = req.body;
 
         // 校验 model
-        const validModels = ['music-2.6', 'music-cover', 'music-2.6-free', 'music-cover-free'];
+        const validModels = ['music-3.0', 'music-3.0-free', 'music-2.6', 'music-cover', 'music-2.6-free', 'music-cover-free'];
         if (!validModels.includes(model)) {
             return res.status(400).json({
                 success: false,
@@ -1500,7 +1500,7 @@ app.post('/api/music/generate', requireAuth, async (req, res) => {
                 return res.status(400).json({ success: false, error: '需要提供 audio_url / audio_base64 / cover_feature_id 其一' });
             }
         } else {
-            // music-2.6: 纯音乐必填 1-2000；非纯音乐可选 0-2000
+            // 生成模型 (music-3.0 / music-2.6): 纯音乐必填 1-2000；非纯音乐可选 0-2000
             if (is_instrumental) {
                 if (!prompt || prompt.length < 1 || prompt.length > 2000) {
                     return res.status(400).json({ success: false, error: '纯音乐 prompt 长度需在 1-2000 字符之间' });
@@ -1519,7 +1519,7 @@ app.post('/api/music/generate', requireAuth, async (req, res) => {
                     return res.status(400).json({ success: false, error: 'music-cover 的 lyrics 长度需在 10-1000 字符之间' });
                 }
             } else {
-                // music-2.6
+                // 生成模型 (music-3.0 / music-2.6)
                 if (!is_instrumental) {
                     if (lyrics.length < 1 || lyrics.length > 3500) {
                         return res.status(400).json({ success: false, error: 'lyrics 长度需在 1-3500 字符之间' });
@@ -1527,8 +1527,8 @@ app.post('/api/music/generate', requireAuth, async (req, res) => {
                 }
             }
         } else if (!is_instrumental && !isCover && !lyrics_optimizer) {
-            // music-2.6 非纯音乐必须有 lyrics 或 lyrics_optimizer
-            return res.status(400).json({ success: false, error: 'music-2.6 非纯音乐必须提供 lyrics 或启用 lyrics_optimizer' });
+            // 生成模型非纯音乐必须有 lyrics 或 lyrics_optimizer
+            return res.status(400).json({ success: false, error: '非纯音乐必须提供 lyrics 或启用歌词自动生成' });
         } else if (!is_instrumental && isCover && cover_feature_id && !lyrics) {
             // music-cover 两步模式: cover_feature_id 已提供，lyrics 必填
             return res.status(400).json({ success: false, error: '两步翻唱必须提供修改后的 lyrics' });

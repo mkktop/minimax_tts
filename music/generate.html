@@ -53,9 +53,17 @@
                         <div class="settings-group">
                             <div class="settings-group-title">📦 模型</div>
                             <div class="model-grid">
-                                <div class="model-option selected" data-model="music-2.6">
+                                <div class="model-option selected" data-model="music-3.0">
+                                    <div class="model-name">music-3.0</div>
+                                    <div class="model-desc">推荐 · 最新音质</div>
+                                </div>
+                                <div class="model-option" data-model="music-3.0-free">
+                                    <div class="model-name">music-3.0-free</div>
+                                    <div class="model-desc">限免 · 所有用户可用</div>
+                                </div>
+                                <div class="model-option" data-model="music-2.6">
                                     <div class="model-name">music-2.6</div>
-                                    <div class="model-desc">推荐 · RPM 较高</div>
+                                    <div class="model-desc">经典 · RPM 较高</div>
                                 </div>
                                 <div class="model-option" data-model="music-2.6-free">
                                     <div class="model-name">music-2.6-free</div>
@@ -268,7 +276,7 @@
             document.getElementById('lyricsCount').style.color = (len > max) ? 'var(--accent-red)' : '';
         }
 
-        let selectedModel = 'music-2.6';
+        let selectedModel = 'music-3.0';
 
         // 模型选择
         document.querySelectorAll('.model-option').forEach(opt => {
