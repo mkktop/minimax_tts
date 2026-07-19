@@ -120,6 +120,7 @@
                                         <button id="useBtn" class="btn btn-primary btn-sm">🎵 去生成音乐</button>
                                     </div>
                                 </div>
+                                <div id="lyricsMeta" class="hidden" style="margin-bottom: 12px; padding: 10px 14px; background: var(--bg-dark); border-radius: var(--radius-md); font-size: 0.875rem; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;"></div>
                                 <pre id="lyricsOutput" style="white-space: pre-wrap; word-break: break-word; font-family: inherit; line-height: 1.8; padding: 16px; background: var(--bg-dark); border-radius: var(--radius-md); max-height: 500px; overflow-y: auto; font-size: 0.875rem;"></pre>
                             </div>
                         </div>
@@ -232,6 +233,27 @@
 
                 currentLyrics = lyricsText;
                 document.getElementById('lyricsOutput').textContent = lyricsText;
+
+                // 展示歌名与风格标签（文档返回的 song_title / style_tags，此前被丢弃）
+                const metaEl = document.getElementById('lyricsMeta');
+                if (metaEl) {
+                    metaEl.innerHTML = '';
+                    const songTitle = d.song_title || d.data?.song_title;
+                    const styleTags = d.style_tags || d.data?.style_tags;
+                    if (songTitle) {
+                        const t = document.createElement('strong');
+                        t.textContent = '🎵 ' + songTitle;
+                        metaEl.appendChild(t);
+                    }
+                    if (styleTags) {
+                        const s = document.createElement('span');
+                        s.style.color = 'var(--text-muted)';
+                        s.textContent = '🏷️ ' + styleTags;
+                        metaEl.appendChild(s);
+                    }
+                    metaEl.classList.toggle('hidden', !songTitle && !styleTags);
+                }
+
                 document.getElementById('resultSection').classList.remove('hidden');
                 setStatus('生成成功！', '点击右侧按钮复制或生成音乐', 'success');
                 showToast('歌词生成成功', 'success');
