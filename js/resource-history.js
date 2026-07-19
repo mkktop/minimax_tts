@@ -185,6 +185,10 @@ async function playResource(id) {
             audio.style.cssText = 'width:100%;margin-top:8px;border-radius:8px;';
             historyContainer.appendChild(audio);
         }
+        // 释放旧的 ObjectURL，避免连续播放多条记录时 blob 内存累积泄漏
+        if (audio.src && audio.src.startsWith('blob:')) {
+            URL.revokeObjectURL(audio.src);
+        }
         audio.src = url;
         audio.play().catch(() => {});
     } catch (err) {
@@ -204,6 +208,9 @@ async function previewResource(id) {
 
         const resultContent = document.getElementById('resultContent') || document.getElementById('resultImage');
         if (resultContent) {
+            // 释放旧的 ObjectURL，避免连续预览多张图片时内存泄漏
+            const oldImg = resultContent.querySelector('img[src^="blob:"]');
+            if (oldImg) URL.revokeObjectURL(oldImg.src);
             resultContent.innerHTML = `<img src="${url}" style="max-width:100%;border-radius:8px;">`;
             const resultSection = resultContent.closest('.result-section');
             if (resultSection) resultSection.classList.remove('hidden');

@@ -103,7 +103,12 @@ function initDragDrop() {
 // 处理克隆音频上传
 function handleCloneAudioUpload(event) {
     const file = event.target.files[0];
-    if (!file) return;
+    if (!file) {
+        // 用户清空了文件选择，重置状态避免下次克隆复用旧文件
+        cloneAudioFile = null;
+        hideFileInfo('clone');
+        return;
+    }
 
     const validTypes = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-m4a'];
     if (!validTypes.includes(file.type) && !file.name.match(/\.(mp3|m4a|wav)$/i)) {
@@ -129,7 +134,11 @@ function handleCloneAudioUpload(event) {
 // 处理示例音频上传
 function handlePromptAudioUpload(event) {
     const file = event.target.files[0];
-    if (!file) return;
+    if (!file) {
+        promptAudioFile = null;
+        hideFileInfo('prompt');
+        return;
+    }
 
     const validTypes = ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-m4a'];
     if (!validTypes.includes(file.type) && !file.name.match(/\.(mp3|m4a|wav)$/i)) {
@@ -201,6 +210,11 @@ function showFileInfo(type, file, duration) {
         const durText = duration != null ? ` | ${duration.toFixed(1)}秒` : '';
         sizeEl.textContent = formatFileSize(file.size) + durText;
     }
+}
+
+function hideFileInfo(type) {
+    const infoEl = document.getElementById(type + 'AudioInfo');
+    if (infoEl) infoEl.classList.add('hidden');
 }
 
 function formatFileSize(bytes) {

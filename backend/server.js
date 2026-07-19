@@ -687,6 +687,22 @@ app.post('/api/tts/http', requireAuth, async (req, res) => {
                 chunks.push(chunk);
             });
 
+            response.data.on('error', (err) => {
+                // 上游流异常（网络断开、MiniMax 提前关闭等），避免前端 SSE 连接挂死
+                console.error('[TTS HTTP Stream] 上游流错误:', err.message);
+                if (!res.headersSent) {
+                    res.status(502).json({ success: false, error: '流式上游错误' });
+                } else {
+                    try { res.end(); } catch (e) {}
+                }
+            });
+            // 客户端提前断开时取消上游流，避免无谓消费
+            res.on('close', () => {
+                if (response.data && typeof response.data.destroy === 'function') {
+                    try { response.data.destroy(); } catch (e) {}
+                }
+            });
+
             response.data.on('end', () => {
                 // 流结束后保存资源
                 if (req.userId && chunks.length > 0) {
@@ -707,7 +723,11 @@ app.post('/api/tts/http', requireAuth, async (req, res) => {
                         });
                         if (audioParts.length > 0) {
                             const hexAudio = audioParts.join('');
-                            const audioBuffer = output_format === 'hex' ? hexToBuffer(hexAudio) : Buffer.from(hexAudio, 'hex');
+                            // output_format=hex 按 hex 解码；其余取值（如 base64）按 base64 解码。
+                            // （url 模式无音频体，audioParts 为空，不会进入此分支）
+                            const audioBuffer = output_format === 'hex'
+                                ? hexToBuffer(hexAudio)
+                                : Buffer.from(hexAudio, 'base64');
                             saveResourceAsync(req.userId, 'tts-http', audioBuffer, {
                                 model,
                                 prompt: text,
@@ -903,12 +923,13 @@ app.get('/api/tts/async/download', requireAuth, async (req, res) => {
             }
         }
 
-        // 保存资源到数据库（始终保存原 mp3，节省空间）
+        // 保存资源到数据库：保存与返回给客户端一致的内容（opus 转码后即存 opus），
+        // 避免历史记录 format=mp3 但实际播放/下载的是 opus 的错位
         if (req.userId && response.data) {
             try {
-                const resourceId = saveResourceAsync(req.userId, 'tts-async', Buffer.from(response.data), {
+                const resourceId = saveResourceAsync(req.userId, 'tts-async', audioBuffer, {
                     model: 'async',
-                    format: 'mp3',
+                    format: finalFormat,
                     params: { file_id, downloadFormat }
                 });
                 // 在响应头中返回资源 ID
@@ -1389,21 +1410,25 @@ app.post('/api/image/generate', requireAuth, async (req, res) => {
                 // API 可能返回 image_base64（response_format=base64）或 image_urls（URL 列表）
                 const base64List = response.data?.data?.image_base64 || [];
                 const urlList = response.data?.data?.image_urls || [];
-                const allImages = [...base64List, ...urlList];
                 const resourceIds = [];
-                for (let i = 0; i < allImages.length; i++) {
+                // 只对 base64 图片本地保存；URL 字符串不是合法 base64，解码会得到乱码字节污染
+                // 历史记录（response_format=url 时前端直接用 URL 展示，无需本地存储）
+                base64List.forEach((b64, i) => {
                     try {
-                        const imageBuffer = Buffer.from(allImages[i], 'base64');
+                        const imageBuffer = Buffer.from(b64, 'base64');
                         const rid = saveResourceAsync(req.userId, 'image', imageBuffer, {
                             model,
                             prompt,
                             format: 'png',
-                            params: { aspect_ratio, width, height, seed, prompt_optimizer, style, index: allImages.length > 1 ? i + 1 : undefined }
+                            params: { aspect_ratio, width, height, seed, prompt_optimizer, style, index: base64List.length > 1 ? i + 1 : undefined }
                         });
                         resourceIds.push(rid);
                     } catch (e) {
                         console.error(`[Resource] 图片 ${i + 1} 保存失败:`, e.message);
                     }
+                });
+                if (urlList.length > 0 && base64List.length === 0) {
+                    console.log('[Resource] 图片生成为 URL 模式，未本地保存到历史记录');
                 }
                 if (resourceIds.length > 0) {
                     imageResult.resourceId = resourceIds[0];
@@ -1558,23 +1583,49 @@ app.post('/api/music/generate', requireAuth, async (req, res) => {
         });
 
         if (stream) {
-            res.setHeader('Content-Type', 'audio/mpeg');
+            // MiniMax music 流式返回 SSE 文本流（每行 data: {...}），不是裸音频字节
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
 
-            // 收集流式数据用于保存
+            // 收集流式数据用于保存（需解析 SSE 提取 audio hex）
             const chunks = [];
-            response.data.on('data', (chunk) => {
-                chunks.push(chunk);
+            response.data.on('data', (chunk) => { chunks.push(chunk); });
+            response.data.on('error', (err) => {
+                console.error('[Music Stream] 上游流错误:', err.message);
+                if (!res.headersSent) {
+                    res.status(502).json({ success: false, error: '音乐流式上游错误' });
+                } else {
+                    try { res.end(); } catch (e) {}
+                }
+            });
+            res.on('close', () => {
+                if (response.data && typeof response.data.destroy === 'function') {
+                    try { response.data.destroy(); } catch (e) {}
+                }
             });
             response.data.on('end', () => {
                 if (req.userId && chunks.length > 0) {
                     try {
-                        const audioBuffer = Buffer.concat(chunks);
-                        saveResourceAsync(req.userId, 'music', audioBuffer, {
-                            model,
-                            prompt,
-                            format: fmt || 'mp3',
-                            params: { lyrics, audio_setting, is_instrumental, isCover }
+                        const fullData = Buffer.concat(chunks).toString();
+                        const audioParts = [];
+                        fullData.split('\n').forEach(line => {
+                            if (line.startsWith('data:')) {
+                                try {
+                                    const evt = JSON.parse(line.slice(5));
+                                    if (evt.data?.audio) audioParts.push(evt.data.audio);
+                                } catch {}
+                            }
                         });
+                        if (audioParts.length > 0) {
+                            const audioBuffer = hexToBuffer(audioParts.join(''));
+                            saveResourceAsync(req.userId, 'music', audioBuffer, {
+                                model,
+                                prompt,
+                                format: fmt || 'mp3',
+                                params: { lyrics, audio_setting, is_instrumental, isCover }
+                            });
+                        }
                     } catch (saveErr) {
                         console.error('[Resource] Music 流式保存失败:', saveErr.message);
                     }

@@ -81,14 +81,20 @@ router.get('/:id/download', async (req, res) => {
             'mp3': 'audio/mpeg',
             'wav': 'audio/wav',
             'pcm': 'audio/pcm',
+            'opus': 'audio/ogg', // opus 数据封装在 ogg 容器中
+            'ogg': 'audio/ogg',
             'png': 'image/png',
             'jpg': 'image/jpeg',
             'jpeg': 'image/jpeg',
             'webp': 'image/webp'
         };
 
+        // 扩展名映射：opus 实际是 ogg 容器，扩展名用 .ogg 以匹配实际格式
+        const extMap = { 'opus': 'ogg' };
+        const ext = extMap[format] || format;
+
         const contentType = mimeTypes[format] || 'application/octet-stream';
-        const filename = `${resource.type}_${resource.id}.${format}`;
+        const filename = `${resource.type}_${resource.id}.${ext}`;
 
         res.setHeader('Content-Type', contentType);
         res.setHeader('Content-Length', resource.file_data.length);

@@ -36,10 +36,15 @@ async function setApiKey(key) {
             if (data.success) {
                 window.hasApiKey = true;
                 localStorage.removeItem(API_KEY_STORAGE);
+                updateApiKeyDisplay();
+                return true;
             }
+            updateApiKeyDisplay();
+            return false;
         } catch (err) {
             console.error('[API Key] 保存到服务端失败:', err);
-            localStorage.setItem(API_KEY_STORAGE, key);
+            updateApiKeyDisplay();
+            return false;
         }
     } else {
         try {
@@ -52,8 +57,9 @@ async function setApiKey(key) {
             console.error('[API Key] 删除失败:', err);
         }
         localStorage.removeItem(API_KEY_STORAGE);
+        updateApiKeyDisplay();
+        return true;
     }
-    updateApiKeyDisplay();
 }
 
 /**
@@ -102,10 +108,16 @@ async function saveApiKey() {
     if (!input) return;
     const key = input.value.trim();
     if (key) {
-        await setApiKey(key);
-        hideApiKeyModal();
-        if (typeof showToast === 'function') {
-            showToast('API Key 保存成功', 'success');
+        const ok = await setApiKey(key);
+        if (ok) {
+            hideApiKeyModal();
+            if (typeof showToast === 'function') {
+                showToast('API Key 保存成功', 'success');
+            }
+        } else {
+            if (typeof showToast === 'function') {
+                showToast('API Key 保存失败，请检查网络后重试', 'error');
+            }
         }
     } else {
         if (typeof showToast === 'function') {

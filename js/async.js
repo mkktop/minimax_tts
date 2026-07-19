@@ -300,6 +300,10 @@ async function createTask() {
     synthBtn.disabled = true;
     synthBtn.innerHTML = '<span class="spinner"></span> 创建中...';
 
+    // 清理可能存在的旧任务轮询，避免与新任务轮询相互干扰（修复轮询竞态）
+    stopPolling();
+
+    let created = false;
     try {
         const body = {
             model: model,
@@ -332,7 +336,10 @@ async function createTask() {
         document.getElementById('taskIdInput').value = currentTaskId;
         saveTask();
 
-        updateStatus('processing', '任务已创建', `Task ID: ${currentTaskId}`);
+        updateStatus('processing', '任务已创建', `Task ID: ${currentTaskId}，轮询中...`);
+        // 创建成功：保持按钮禁用直到任务终态，避免用户在轮询期间重复创建任务导致重复扣费
+        created = true;
+        synthBtn.innerHTML = '⏳ 轮询中...';
 
         // 开始轮询状态
         startPolling();
@@ -342,8 +349,11 @@ async function createTask() {
         updateStatus('error', '创建失败', error.message);
         showToast('创建任务失败: ' + (error.message || '未知错误'), 'error');
     } finally {
-        synthBtn.disabled = false;
-        synthBtn.innerHTML = '⏳ 创建任务';
+        // 仅在创建失败时恢复按钮；创建成功则由 queryTask 检测到终态时恢复
+        if (!created) {
+            synthBtn.disabled = false;
+            synthBtn.innerHTML = '⏳ 创建任务';
+        }
     }
 }
 
@@ -397,14 +407,17 @@ async function queryTask() {
                 document.getElementById('taskResult').classList.remove('hidden');
                 document.getElementById('downloadSubtitleBtn').classList.remove('hidden');
                 stopPolling();
+                resetSynthBtn();
                 break;
             case 'Failed':
                 updateStatus('error', '任务失败', data.failed_reason || '未知错误');
                 stopPolling();
+                resetSynthBtn();
                 break;
             case 'Expired':
                 updateStatus('error', '任务已过期', '文件已超时失效，请重新创建任务');
                 stopPolling();
+                resetSynthBtn();
                 break;
             default:
                 updateStatus('pending', status, `进度: ${progress}%`);
@@ -435,6 +448,15 @@ function stopPolling() {
     if (pollInterval) {
         clearInterval(pollInterval);
         pollInterval = null;
+    }
+}
+
+// 恢复创建任务按钮（任务终态或创建失败时调用）
+function resetSynthBtn() {
+    const synthBtn = document.getElementById('synthBtn');
+    if (synthBtn) {
+        synthBtn.disabled = false;
+        synthBtn.innerHTML = '⏳ 创建任务';
     }
 }
 

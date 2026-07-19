@@ -159,3 +159,96 @@ if (document.readyState === 'loading') {
 } else {
     initCustomSelects();
 }
+
+/**
+ * 工厂函数：在指定容器内创建自定义下拉框（不依赖原生 <select>）
+ * 供 image.js 等模块以 container + config 方式调用。
+ *
+ * @param {HTMLElement} container - 容器元素（会被清空后填入下拉框，避免重复调用叠加）
+ * @param {Object}   config - { value, options: [{value, label}], onChange(val) }
+ * @returns {Object} 实例 API { getValue, setValue, destroy }
+ *
+ * 渲染结构（供外部读取）：
+ *   container > .custom-select > .custom-select-trigger > span.custom-select-value
+ * 其中 .custom-select-value 带 data-value 属性（纯 value），textContent 为 label。
+ */
+window.createCustomSelect = function(container, config) {
+    if (!container) return null;
+    config = config || {};
+    const options = config.options || [];
+    let selectedValue = config.value || (options[0] && options[0].value) || '';
+
+    container.innerHTML = '';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'custom-select';
+
+    const trigger = document.createElement('div');
+    trigger.className = 'custom-select-trigger';
+    const valueSpan = document.createElement('span');
+    valueSpan.className = 'custom-select-value';
+    trigger.appendChild(valueSpan);
+
+    const optionsPanel = document.createElement('div');
+    optionsPanel.className = 'custom-select-options';
+
+    const labelOf = (val) => {
+        const o = options.find(x => x.value === val);
+        return o ? (o.label != null ? o.label : o.value) : '';
+    };
+    const renderTrigger = () => {
+        valueSpan.dataset.value = selectedValue;
+        valueSpan.textContent = labelOf(selectedValue);
+    };
+
+    options.forEach(opt => {
+        const optionEl = document.createElement('div');
+        optionEl.className = 'custom-select-option' + (opt.value === selectedValue ? ' selected' : '');
+        optionEl.textContent = opt.label != null ? opt.label : opt.value;
+        optionEl.dataset.value = opt.value;
+        optionEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            select(opt.value);
+        });
+        optionsPanel.appendChild(optionEl);
+    });
+
+    let isOpen = false;
+    const open = () => {
+        isOpen = true;
+        trigger.classList.add('open');
+        optionsPanel.classList.add('open');
+        const sel = optionsPanel.querySelector('.selected');
+        if (sel) sel.scrollIntoView({ block: 'nearest' });
+    };
+    const close = () => {
+        isOpen = false;
+        trigger.classList.remove('open');
+        optionsPanel.classList.remove('open');
+    };
+
+    function select(value) {
+        selectedValue = value;
+        renderTrigger();
+        Array.from(optionsPanel.children).forEach(el => {
+            el.classList.toggle('selected', el.dataset.value === value);
+        });
+        close();
+        if (typeof config.onChange === 'function') config.onChange(value);
+    }
+
+    trigger.addEventListener('click', (e) => { e.stopPropagation(); isOpen ? close() : open(); });
+    document.addEventListener('click', (e) => { if (!wrapper.contains(e.target)) close(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen) close(); });
+
+    renderTrigger();
+    wrapper.appendChild(trigger);
+    wrapper.appendChild(optionsPanel);
+    container.appendChild(wrapper);
+
+    return {
+        getValue: () => selectedValue,
+        setValue: (v) => { if (options.some(o => o.value === v)) select(v); },
+        destroy: () => { container.innerHTML = ''; }
+    };
+};

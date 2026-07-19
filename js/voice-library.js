@@ -465,16 +465,13 @@ function initVoiceSelector() {
     async function deleteRemoteVoice(voiceId, voiceType, element) {
         if (!confirm(`确定要删除音色 "${voiceId}" 吗？删除后无法恢复。`)) return;
 
-        const apiKey = localStorage.getItem('minimax_tts_api_key');
-        if (!apiKey) return;
-
         try {
             const response = await fetch('/api/voice/delete', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': apiKey
+                    'Content-Type': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     voice_type: voiceType,
                     voice_id: voiceId
@@ -586,16 +583,15 @@ function initVoiceSelector() {
     // ============ 加载远程自定义音色 ============
     // 查询账号下的复刻音色和设计音色，合并到音色列表
     async function loadRemoteVoices() {
-        const apiKey = localStorage.getItem('minimax_tts_api_key');
-        if (!apiKey) return;
-
+        // API Key 由后端从 session 获取（已登录）；未登录时后端返回 401，
+        // 下方 response.ok 判断会静默跳过，不阻塞音色库 UI
         try {
             const response = await fetch('/api/voice/list', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': apiKey
+                    'Content-Type': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify({ voice_type: 'all' })
             });
 

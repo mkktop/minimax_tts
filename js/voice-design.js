@@ -213,11 +213,13 @@ async function startDesign() {
         document.getElementById('resultSection').dataset.voiceId = generatedVoiceId;
         updateStatus('success', '设计完成', `音色 ID: ${generatedVoiceId}`);
 
-        // 自动播放试听
+        // 自动播放试听（仅在真正开始播放后才切换状态，避免被浏览器拦截时按钮状态反转）
         if (audioBlob) {
-            audioElement.play().catch(err => console.log('Auto-play blocked:', err));
-            isPlaying = true;
-            document.querySelector('.audio-play-btn').textContent = '⏸';
+            audioElement.play().then(() => {
+                isPlaying = true;
+                const btn = document.querySelector('.audio-play-btn');
+                if (btn) btn.textContent = '⏸';
+            }).catch(err => console.log('Auto-play blocked:', err));
         }
 
         showToast('音色设计成功！', 'success');

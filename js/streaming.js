@@ -15,7 +15,8 @@ let mimeType = 'audio/mpeg'; // set when format is known
 let streamingActive = false;
 let audioElement = null;
 let isPlaying = false;
-let audioBlob = null; // fallback blob for download
+let audioBlob = null; // 最终音频 blob（用于下载/保存）
+let allReceivedChunks = []; // 所有已接收 chunk（构建最终 blob，不被实时消费）
 let ws = null; // WebSocket 连接
 let subtitleEntries = []; // 字幕条目
 let startTime = 0;
@@ -246,18 +247,14 @@ function initMediaSource(format) {
 
         mediaSource.addEventListener('sourceopen', () => {
             try {
-                if (MediaSource.isTypeSupported(mimeType)) {
-                    sourceBuffer = mediaSource.addSourceBuffer(mimeType);
-                } else {
-                    // Fallback: mp3 always works
-                    mimeType = 'audio/mpeg';
-                    if (MediaSource.isTypeSupported(mimeType)) {
-                        sourceBuffer = mediaSource.addSourceBuffer(mimeType);
-                    } else {
-                        reject(new Error('MediaSource 不支持此格式'));
-                        return;
-                    }
+                // 仅当浏览器原生支持该格式的 MediaSource 时才边收边播，
+                // 否则 reject → streamPlay 走 blob 整体播放模式，避免字节与 mimeType
+                // 不匹配（如 wav/pcm 字节喂给 mp3 SourceBuffer）导致静音
+                if (!MediaSource.isTypeSupported(mimeType)) {
+                    reject(new Error('MediaSource 不支持此格式，改为整体播放'));
+                    return;
                 }
+                sourceBuffer = mediaSource.addSourceBuffer(mimeType);
                 sourceBuffer.addEventListener('updateend', flushPendingChunks);
                 sourceBuffer.addEventListener('error', e => reject(e));
                 mediaSourceReady = true;
@@ -294,6 +291,10 @@ function appendChunk(hexString) {
     const bytes = hexToBytes(hexString);
     if (!bytes || bytes.byteLength === 0) return;
 
+    // 始终保留一份完整数据，用于最终构建 audioBlob（下载/保存），不被实时消费
+    allReceivedChunks.push(bytes);
+
+    // 实时喂给 SourceBuffer 实现边收边播
     if (streamingActive && sourceBuffer && !sourceBuffer.updating && mediaSourceReady) {
         sourceBuffer.appendBuffer(bytes);
     } else if (streamingActive && sourceBuffer && sourceBuffer.updating) {
@@ -444,6 +445,8 @@ async function startSynthesis() {
 
     // 重置
     pendingChunks = [];
+    allReceivedChunks = [];
+    audioBlob = null;
     subtitleEntries = [];
     startTime = Date.now();
 
@@ -544,8 +547,8 @@ function handleServerMessage(msg) {
             // 收到音频片段 - 立即播放
             if (msg.data?.audio) {
                 appendChunk(msg.data.audio);
-                const totalSize = pendingChunks.reduce((sum, bytes) => sum + bytes.byteLength, 0);
-                document.getElementById('chunkCount').textContent = pendingChunks.length;
+                const totalSize = allReceivedChunks.reduce((sum, bytes) => sum + bytes.byteLength, 0);
+                document.getElementById('chunkCount').textContent = allReceivedChunks.length;
                 document.getElementById('dataSize').textContent = (totalSize / 1024).toFixed(1) + ' KB';
                 const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
                 document.getElementById('latency').textContent = elapsed + 's';
@@ -590,19 +593,16 @@ function handleServerMessage(msg) {
 function finishSynthesis(extraInfo) {
     const synthBtn = document.getElementById('synthBtn');
 
-    if (pendingChunks.length === 0) {
+    if (allReceivedChunks.length === 0) {
         updateStatus('error', '合成失败', '未收到音频数据');
         synthBtn.disabled = false;
         synthBtn.innerHTML = '🎤 开始合成（WebSocket）';
         return;
     }
 
-    // 克隆一份 pendingChunks 防止后续被 shift 消费导致保存空数据
-    const savedChunks = pendingChunks.slice();
-
     const format = document.getElementById('formatSelect').value;
     mimeType = getMimeType(format);
-    audioBlob = new Blob(savedChunks, { type: mimeType });
+    audioBlob = new Blob(allReceivedChunks, { type: mimeType });
 
     const audioUrl = URL.createObjectURL(audioBlob);
     audioElement.src = audioUrl;
@@ -611,7 +611,7 @@ function finishSynthesis(extraInfo) {
     audioElement.addEventListener('loadedmetadata', function onMeta() {
         audioElement.removeEventListener('loadedmetadata', onMeta);
         document.getElementById('audioPlayer').classList.remove('hidden');
-        updateStatus('success', '合成完成', `音频 ${extraInfo?.audio_length ? (extraInfo.audio_length / 1000).toFixed(1) + 's' : ''}，${pendingChunks.length} 片段`);
+        updateStatus('success', '合成完成', `音频 ${extraInfo?.audio_length ? (extraInfo.audio_length / 1000).toFixed(1) + 's' : ''}，${allReceivedChunks.length} 片段`);
 
         // 显示字幕（如果有）
         if (subtitleEntries.length > 0) {
@@ -648,12 +648,12 @@ async function saveStreamingAudio(extraInfo) {
         const text = document.getElementById('textInput').value.trim();
         const voiceId = window.getSelectedVoiceId ? window.getSelectedVoiceId() : '';
 
-        // 用 audioBlob（finishSynthesis 已克隆构建），避免 pendingChunks 被 shift 消费
+        // 用 audioBlob（endStreaming/finishSynthesis 已构建）
         let blob = audioBlob;
         if (!blob || blob.size === 0) {
-            // fallback: 从 pendingChunks 克隆
-            if (pendingChunks.length === 0) return;
-            blob = new Blob(pendingChunks.slice(), { type: 'audio/mpeg' });
+            // fallback: 从 allReceivedChunks 构建
+            if (allReceivedChunks.length === 0) return;
+            blob = new Blob(allReceivedChunks, { type: 'audio/mpeg' });
         }
 
         // opus 选项：把 mp3 发到后端 /api/convert-audio 转码为标准 ogg/opus 再保存
@@ -715,8 +715,16 @@ async function saveStreamingAudio(extraInfo) {
 function endStreaming(extraInfo) {
     if (ws) { ws.close(); ws = null; }
 
+    // 始终从 allReceivedChunks 构建最终 audioBlob，供下载/保存使用
+    // （修复边收边播成功后 audioBlob 为 null 导致无法下载/保存的 bug）
+    if (allReceivedChunks.length > 0 && (!audioBlob || audioBlob.size === 0)) {
+        const fmt = document.getElementById('formatSelect').value;
+        mimeType = getMimeType(fmt);
+        audioBlob = new Blob(allReceivedChunks, { type: mimeType });
+    }
+
     if (!streamingActive) {
-        // Fallback: build blob from pendingChunks
+        // Fallback: MediaSource 未启用或不支持该格式 → 用 blob 整体播放
         finishSynthesis(extraInfo);
         return;
     }
@@ -724,6 +732,10 @@ function endStreaming(extraInfo) {
     if (mediaSource && mediaSource.readyState === 'open') {
         mediaSource.endOfStream();
     }
+
+    // 显式重置（原本仅在 sourceended/sourceclose 异步事件里置 false，
+    // 会导致音频还在播放时再次合成，状态错乱、旧 MediaSource 残留）
+    streamingActive = false;
 
     const synthBtn = document.getElementById('synthBtn');
     if (synthBtn) { synthBtn.disabled = false; synthBtn.innerHTML = '🎤 开始合成（WebSocket）'; }
@@ -818,6 +830,8 @@ function togglePlay() {
 }
 
 function seekAudio(event) {
+    // 边收边播期间 duration 常为 Infinity，此时禁止 seek（否则 currentTime=NaN 导致播放卡死）
+    if (!audioElement || !isFinite(audioElement.duration) || audioElement.duration <= 0) return;
     const progressBar = event.currentTarget;
     const rect = progressBar.getBoundingClientRect();
     const pos = (event.clientX - rect.left) / rect.width;
@@ -835,9 +849,9 @@ async function downloadAudio() {
 
     let blobToDownload = audioBlob;
 
-    // In streaming mode, build blob from cloned pendingChunks for download
-    if (streamingActive && pendingChunks.length > 0) {
-        blobToDownload = new Blob(pendingChunks.slice(), { type: 'audio/mpeg' });
+    // 兜底：audioBlob 未构建时从 allReceivedChunks 构建
+    if (!blobToDownload && allReceivedChunks.length > 0) {
+        blobToDownload = new Blob(allReceivedChunks, { type: 'audio/mpeg' });
     }
 
     if (!blobToDownload) {
