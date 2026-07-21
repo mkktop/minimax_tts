@@ -151,6 +151,20 @@
         }
     };
 
+    // ============ 移动端下拉分组切换（手风琴） ============
+    window.toggleNavGroup = function (trigger) {
+        // 仅在移动端（下拉不是 hover 触发）时作为手风琴使用
+        const group = trigger.closest('.nav-group');
+        if (!group) return;
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+        if (!isMobile) return;
+        // 关闭其他已展开的分组
+        document.querySelectorAll('.nav-group.open').forEach((g) => {
+            if (g !== group) g.classList.remove('open');
+        });
+        group.classList.toggle('open');
+    };
+
     // ============ 初始化 ============
     function init() {
         initScrollReveal();

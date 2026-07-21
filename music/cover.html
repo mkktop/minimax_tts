@@ -19,12 +19,38 @@
             </a>
             <button class="nav-toggle" onclick="toggleNav()" aria-label="菜单">☰</button>
             <nav class="nav" id="mainNav">
-                <a href="index.html" class="nav-link">← 全部模块</a>
-                <a href="generate.html" class="nav-link">音乐生成</a>
-                <a href="lyrics.html" class="nav-link">歌词生成</a>
-                <a href="cover.html" class="nav-link active">翻唱生成</a>
-                <a href="../tts/" class="nav-link">语音生成</a>
-                <a href="../image/" class="nav-link">图片生成</a>
+                <a href="../" class="nav-link nav-home">🏠 首页</a>
+                <div class="nav-group">
+                    <button type="button" class="nav-group-trigger" onclick="toggleNavGroup(this)">🎙️ 语音生成 <span class="nav-caret">▾</span></button>
+                    <div class="nav-dropdown">
+                        <a href="../tts/index.html" class="nav-drop-link">模块首页</a>
+                        <div class="nav-drop-divider"></div>
+                        <a href="../tts/streaming.html" class="nav-drop-link">同步合成（流式）</a>
+                        <a href="../tts/http.html" class="nav-drop-link">同步合成（HTTP）</a>
+                        <a href="../tts/async.html" class="nav-drop-link">异步合成</a>
+                        <a href="../tts/clone.html" class="nav-drop-link">音色复刻</a>
+                        <a href="../tts/voice-design.html" class="nav-drop-link">音色设计</a>
+                    </div>
+                </div>
+                <div class="nav-group">
+                    <button type="button" class="nav-group-trigger" onclick="toggleNavGroup(this)">🎨 图片生成 <span class="nav-caret">▾</span></button>
+                    <div class="nav-dropdown">
+                        <a href="../image/index.html" class="nav-drop-link">模块首页</a>
+                        <div class="nav-drop-divider"></div>
+                        <a href="../image/generate.html" class="nav-drop-link">图像生成</a>
+                    </div>
+                </div>
+                <div class="nav-group nav-group-active">
+                    <button type="button" class="nav-group-trigger" onclick="toggleNavGroup(this)">🎵 音乐生成 <span class="nav-caret">▾</span></button>
+                    <div class="nav-dropdown">
+                        <a href="../music/index.html" class="nav-drop-link">模块首页</a>
+                        <div class="nav-drop-divider"></div>
+                        <a href="../music/generate.html" class="nav-drop-link">音乐生成</a>
+                        <a href="../music/lyrics.html" class="nav-drop-link">歌词生成</a>
+                        <a href="../music/cover.html" class="nav-drop-link active">翻唱生成</a>
+                    </div>
+                </div>
+                <a href="https://github.com/mkktop/minimax_tts" target="_blank" class="nav-link">项目 ↗</a>
             </nav>
             <div class="header-actions">
                 <div id="authSection" class="hidden">
@@ -168,7 +194,13 @@
 
                                 <div class="form-group" style="margin-top: 16px;">
                                     <label class="form-label">歌词 (10-1000 字符)</label>
-                                    <textarea id="lyricsEditInput" class="form-input" style="min-height: 160px; font-family: monospace; font-size: 0.875rem;" placeholder="[Verse 1]\n这里是修改后的第一段歌词\n用新的文字讲述你的故事\n\n[Chorus]\n全新的副歌部分\n用不同的感觉演唱"></textarea>
+                                    <textarea id="lyricsEditInput" class="form-input" style="min-height: 160px; font-family: monospace; font-size: 0.875rem;" placeholder="[Verse 1]
+这里是修改后的第一段歌词
+用新的文字讲述你的故事
+
+[Chorus]
+全新的副歌部分
+用不同的感觉演唱"></textarea>
                                     <div class="upload-hint" style="margin-top: 6px;">从上方"提取"后会自动填充，可自由编辑</div>
                                 </div>
                             </div>
@@ -326,7 +358,8 @@
                         'x-api-key': apiKey
                     },
                     body: JSON.stringify({
-                        model: coverModel,
+                        // 预处理接口仅支持 music-cover（该步骤免费、与生成模型无关）
+                        model: 'music-cover',
                         audio_url: audioUrl
                     })
                 });

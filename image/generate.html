@@ -20,10 +20,38 @@
             </a>
             <button class="nav-toggle" onclick="toggleNav()" aria-label="菜单">☰</button>
             <nav class="nav" id="mainNav">
-                <a href="index.html" class="nav-link">← 全部模块</a>
-                <a href="generate.html" class="nav-link active">图像生成</a>
-                <a href="../tts/" class="nav-link">语音生成</a>
-                <a href="../music/" class="nav-link">音乐生成</a>
+                <a href="../" class="nav-link nav-home">🏠 首页</a>
+                <div class="nav-group">
+                    <button type="button" class="nav-group-trigger" onclick="toggleNavGroup(this)">🎙️ 语音生成 <span class="nav-caret">▾</span></button>
+                    <div class="nav-dropdown">
+                        <a href="../tts/index.html" class="nav-drop-link">模块首页</a>
+                        <div class="nav-drop-divider"></div>
+                        <a href="../tts/streaming.html" class="nav-drop-link">同步合成（流式）</a>
+                        <a href="../tts/http.html" class="nav-drop-link">同步合成（HTTP）</a>
+                        <a href="../tts/async.html" class="nav-drop-link">异步合成</a>
+                        <a href="../tts/clone.html" class="nav-drop-link">音色复刻</a>
+                        <a href="../tts/voice-design.html" class="nav-drop-link">音色设计</a>
+                    </div>
+                </div>
+                <div class="nav-group nav-group-active">
+                    <button type="button" class="nav-group-trigger" onclick="toggleNavGroup(this)">🎨 图片生成 <span class="nav-caret">▾</span></button>
+                    <div class="nav-dropdown">
+                        <a href="../image/index.html" class="nav-drop-link">模块首页</a>
+                        <div class="nav-drop-divider"></div>
+                        <a href="../image/generate.html" class="nav-drop-link active">图像生成</a>
+                    </div>
+                </div>
+                <div class="nav-group">
+                    <button type="button" class="nav-group-trigger" onclick="toggleNavGroup(this)">🎵 音乐生成 <span class="nav-caret">▾</span></button>
+                    <div class="nav-dropdown">
+                        <a href="../music/index.html" class="nav-drop-link">模块首页</a>
+                        <div class="nav-drop-divider"></div>
+                        <a href="../music/generate.html" class="nav-drop-link">音乐生成</a>
+                        <a href="../music/lyrics.html" class="nav-drop-link">歌词生成</a>
+                        <a href="../music/cover.html" class="nav-drop-link">翻唱生成</a>
+                    </div>
+                </div>
+                <a href="https://github.com/mkktop/minimax_tts" target="_blank" class="nav-link">项目 ↗</a>
             </nav>
             <div class="header-actions">
                 <div id="authSection" class="hidden">
